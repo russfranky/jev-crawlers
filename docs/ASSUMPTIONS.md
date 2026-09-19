@@ -80,6 +80,11 @@ human (4 escalate, 2 file-report); all 6 benign auto-pruned. Source:
 Scope: one author, one fixture, visible bugs. Partially covers U1,
 U2, U5; does not replace them.
 
+**M16. Verdict choice per-class behavior, n=12 (2026-09-19).** On the
+labeled set the choice never crossed classes: bugs 4 report / 2
+escalate / 0 prune / 0 expand; benign 6 prune. Partially covers U4;
+the choice is a supporting signal, risk bands drive routing.
+
 **M12. ZDR planning confirmed live on our plan (2026-09-19).** One
 call with `zeroDataRetention: true` returned 200 with
 planningReasoning: "System credentials planned for: typesafe-ai. ZDR
@@ -202,10 +207,13 @@ about 1,600 chars; code excerpts near the cap are untested. Validate:
 ablation on the same nodes at 2k, 6k, and 12k chars; measure routing
 agreement and cost per node.
 
-**U4. The verdict choice behaves on code nodes like it did in triage.**
-M9 covers commit classification. Whether expand/report/prune/escalate
-distributes usefully on code leads is unknown. Validate: labeled node
-set; measure per-class precision and recall of the choice.
+**U4. The verdict choice behaves on code nodes (partially measured).**
+M16: on the 12 labeled nodes the choice never crossed classes: bugs
+4 report / 2 escalate / 0 prune / 0 expand; benign 6 prune / 0
+elsewhere. report precision 4/4, prune precision 6/6 on this set.
+The choice is a supporting signal (risk bands drive routing), and
+n=12 is thin. Validate further: per-class precision/recall on a
+larger labeled set.
 
 **U5. `bug_likely` ranks code bugs (partially measured).** M11 (n=12)
 shows pairwise concordance 1.00 on one fixture, but concordance is a

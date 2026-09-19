@@ -85,17 +85,15 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   `providerMetadata.gateway.routing.planningReasoning` before you
   send private code.
 - **Jev cannot see images.** States carry text evidence only.
-- **Cost and latency are real.** The gateway reports the real list
-  cost per call in `marketCostUsd`: $0.000035 on a live 2026-09-19
-  judgment, inside the measured $0.000042 band. The driver prefers
-  the reported cost and falls back to the $0.00008 estimate when it
-  is absent. In our Jev calibration runs we measured about $0.00008
-  per normal node (headroom above the measured $0.000042 on
-  ~1.1k-token states), $0.04 to $0.05 for a 500-node crawl near the
+- **Cost and latency are real.** Live judgments cost about $0.000035
+  per call (gateway-reported list cost, 2026-09-19), inside our
+  measured $0.000042 band. Budget $0.00008 per call as headroom for
+  heavy context; the driver uses the gateway-reported cost when it is
+  present. That puts a 500-node crawl at $0.04 to $0.05 near the
   state cap, and up to $0.17 to $0.34 with heavy multi-file context. The
   bands are derived from measured per-call cost and gateway pricing,
   not measured end to end. Serial calls run about 1 second each, so a
-  500-node crawl takes minutes. The driver reports estimated Jev cost
+  500-node crawl takes minutes. The driver reports the cost
   for every crawl. Budget accordingly.
 - **Verification v0 checks grounding, not execution.** The verifier
   confirms the artifact names real code and states an input, a wrong

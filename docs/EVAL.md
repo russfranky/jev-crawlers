@@ -230,3 +230,26 @@ Two more unvalidated assumptions converted to small measurements:
   as M15; a real hit-rate number needs many seeded bugs.
 
 Probe cost: 7 live calls, about $0.00025.
+
+## 11. Verdict-choice behavior and README cost audit (2026-09-19)
+
+- **U4, from existing data (zero new calls).** The 12 labeled
+  judgments give per-class verdict behavior: bugs 4 report / 2
+  escalate / 0 prune / 0 expand; benign 6 prune. The choice never
+  crossed classes (report precision 4/4, prune precision 6/6 on
+  this set). Recorded as M16; U4 partially measured. Thin (n=12)
+  but free.
+- **README audit (2 calls).** `readme-audit` rerun on the updated
+  README: honesty_caveats P0.39, down from P97. The README gained
+  caveats since that P97, so the swing marks the uncalibrated
+  boolean as noise, not a real regression; recorded as advisory.
+  The unsupported_claim choice pointed at "cost" (P0.93,
+  fix_priority 1.86, confidence 0.26), and a diagnostic named the
+  $0.00008 per-node figure: the bullet cited three overlapping
+  per-call numbers ($0.000035 observed, $0.000042 band, $0.00008
+  estimate), which reads as confusion even though each is
+  attributed. Fixed by rewriting the bullet around one observed
+  number and one headroom figure. No claim was weakened; the
+  numbers and attributions are unchanged.
+
+Audit cost: 2 calls, about $0.00007.
