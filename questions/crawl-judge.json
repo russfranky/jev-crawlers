@@ -1,0 +1,129 @@
+{
+ "_predicate_dsl": "Policy routes are evaluated in order; the first route whose `when` predicates all pass wins. An empty `when` always matches (use last as the default). Predicate ops: gte, lte, gt, lt, eq, neq, in, between. LHS paths: `<question>.<field>` where field is probability (boolean), choice | top_probability (choice), score (score); or `state.<path>` into the input state. Exit codes: 0 = auto-proceed, 1 = human review, 2 = escalate to owner, 3 = scorer error (caller treats as review).",
+ "defaults": {
+  "maxStateChars": 6000,
+  "onError": "review"
+ },
+ "model": "typesafe-ai/jev",
+ "providerOptions": {
+  "gateway": {
+   "zeroDataRetention": true
+  }
+ },
+ "sets": {
+  "crawl-judge": {
+   "description": "One Jev judgment per crawl node: expand the lead, report a bug candidate, prune the dead end, or escalate to a human. Jev probabilities are ranking signals, not calibrated bug confidence; the set is uncalibrated and every result is advisory.",
+   "policy": {
+    "onError": "review",
+    "routes": [
+     {
+      "exit": 2,
+      "meaning": "Route to a human: serious blast radius or ambiguous evidence.",
+      "name": "escalate-owner",
+      "when": [
+       {
+        "eq": [
+         "verdict.choice",
+         "escalate"
+        ]
+       }
+      ]
+     },
+     {
+      "exit": 0,
+      "meaning": "Candidate bug with a falsifiable artifact; goes to crawl-verify.",
+      "name": "file-report",
+      "when": [
+       {
+        "all": [
+         {
+          "eq": [
+           "verdict.choice",
+           "report"
+          ]
+         },
+         {
+          "gte": [
+           "bug_likely.probability",
+           0.6
+          ]
+         },
+         {
+          "gte": [
+           "artifact_stated.probability",
+           0.5
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     {
+      "exit": 1,
+      "meaning": "The judge saw a bug but the case is not falsifiable yet; a human decides whether to keep the lead.",
+      "name": "needs-artifact",
+      "when": [
+       {
+        "eq": [
+         "verdict.choice",
+         "report"
+        ]
+       }
+      ]
+     },
+     {
+      "exit": 0,
+      "meaning": "Follow the lead: expand the node's children.",
+      "name": "expand-node",
+      "when": [
+       {
+        "eq": [
+         "verdict.choice",
+         "expand"
+        ]
+       }
+      ]
+     },
+     {
+      "exit": 0,
+      "meaning": "Dead end: drop the node.",
+      "name": "auto-prune",
+      "when": []
+     }
+    ]
+   },
+   "questions": {
+    "artifact_stated": {
+     "instructions": "The evidence states a falsifiable artifact: a specific input or trigger, the exact wrong behavior, and a reproduction path (a reproducer sketch, a failing-test proposal, or a concrete input trace). Answer true only when all three appear in the evidence. A vague claim like 'this looks wrong' is false.",
+     "type": "boolean"
+    },
+    "bug_likely": {
+     "instructions": "This code contains a real bug connected to the seed context. When the evidence cites a specific line and a concrete wrong behavior (a wrong index, an unchecked error, a missing guard, a mismatched format string), treat that as a genuine bug lead even though you cannot run the code. Answer false when the code is benign or the link to the seed is speculative.",
+     "type": "boolean"
+    },
+    "severity": {
+     "instructions": "If this node is a bug, how severe is it? 0 means cosmetic or dead code. 0.5 means wrong behavior on a normal path. 1 means an auth bypass, money movement error, data loss, or a security hole.",
+     "type": "score",
+     "criteria": [
+      "0: cosmetic or dead code; no user impact.",
+      "0.25: minor wrong behavior on an edge path.",
+      "0.5: wrong behavior on a normal path.",
+      "0.75: serious wrong behavior: data corruption risk or auth weakness.",
+      "1: critical: auth bypass, money movement error, data loss, or security hole."
+     ]
+    },
+    "verdict": {
+     "criteria": {
+      "escalate": "The node may be a real bug with serious blast radius (auth, money, data loss, security), or the evidence is too ambiguous to judge. A human must decide.",
+      "expand": "The node is worth investigating further. The evidence points at a specific next lead: a caller, a callee, a config file, or a co-changed file that could confirm or rule out a bug.",
+      "prune": "The node is a dead end: benign code, no real link to the seed, or the lead dried up.",
+      "report": "The node contains a concrete, specific bug. The evidence names the wrong behavior, the trigger or input, and a way to reproduce it."
+     },
+     "instructions": "What should happen to this node next?",
+     "type": "choice"
+    }
+   },
+   "status": "proposed"
+  }
+ }
+}
