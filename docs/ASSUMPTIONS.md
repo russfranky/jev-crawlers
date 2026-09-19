@@ -143,6 +143,34 @@ reproducers. Source:
 `examples/verifier-eval/results-2026-09-19.json`. U7's positive
 claim is VALIDATED within this scope.
 
+**M21. Seeder pattern noise cut, measured before/after on mobhunter
+(2026-09-19).** The probation bug hunt (128 judgments, 28
+candidates, 27 false positives) traced its two biggest noise
+classes to the seeder's `patterns` table in `bin/crawl-seed.mjs`,
+not the judge: `shell` matched Luau's `task.spawn` (a coroutine
+scheduler, 166 hits) and bare `spawn (`/`system (` matched English
+prose ('respawn (pool', 'the weather system (rain'), while `auth`
+fired on the bare word 'token' (item display names, parser tokens,
+XML serialization). Fix, in the existing table: `shell` now only
+fires on real OS-invocation forms (`exec(`/`execSync(`/`os.execute`/
+`io.popen`/`child_process.spawn`); `token` moved out of `auth` into
+a new `auth-token` entry that requires an auth qualifier
+(session/access/refresh/bearer/csrf/id/api/auth/secret/sign),
+a secret-ish suffix, a context word on the same line, or a
+secret-shaped value nearby — never a bare word match. Measured
+with `node bin/crawl-seed.mjs --repo <subtree> --patterns` before
+and after on the same mobhunter subtrees the hunt used: game
+1362 -> 937 seeds (-425, -31%), with `pattern:shell` 233 -> 0
+(all 233 were noise) and `pattern:auth` 401 -> 180 plus 29
+`pattern:auth-token` (all 29 genuinely auth-adjacent, e.g.
+ProfileStore session tokens; zero display-name junk); web 48 ->
+46. The original SESSION_SECRET finding still fires (via `auth`
+on the public fallback constant), confirmed by re-seeding the
+website subtree. Patterns keep their intent — sanity checks
+confirm `exec('ls')`, `os.execute(cmd)`, `io.popen`, and
+`child_process.spawn` still fire — they just no longer match
+prose. Zero Jev calls; this was mechanical.
+
 **M12. ZDR planning confirmed live on our plan (2026-09-19).** One
 call with `zeroDataRetention: true` returned 200 with
 planningReasoning: "System credentials planned for: typesafe-ai. ZDR

@@ -380,3 +380,53 @@ on-disk code, judge stated a bug claim, risk at or above floor),
 not independent bug derivation. Next: re-run on a larger labeled
 set with real-world bugs, and add a fabricated-citation case to
 the control.
+
+## 16. Seeder pattern-noise fix: before/after on mobhunter (2026-09-19)
+
+The probation bug hunt (128 judgments on the owner's mobhunter
+repo: 28 candidates, 27 false positives, 1 confirmed real bug —
+the SESSION_SECRET fallback) traced its two biggest noise classes
+to the seeder's `patterns` table in `bin/crawl-seed.mjs`, not the
+judge. `shell` matched Luau's `task.spawn` (166 hits; a coroutine
+scheduler, not shell execution) and bare `spawn (` / `system (`
+matched English prose ('respawn (pool', 'the weather system
+(rain'). `auth` fired on the bare word 'token' (item display
+names like "Revival Token", parser tokens, XML `<token>`
+serialization, timer tokens).
+
+Fix, in the existing pattern table (no new mechanism):
+- `shell` now only fires on real OS-invocation forms:
+  `exec(`/`execSync(`/`os.execute(`/`io.popen`/`
+  `child_process.spawn`/`cp.spawn`. Bare `spawn (` and
+  `system (` no longer match anything.
+- `token` moved out of `auth` into a new `auth-token` entry that
+  requires an auth qualifier (session/access/refresh/bearer/
+  csrf/id/api/auth/secret/sign), a secret-ish suffix, a context
+  word on the same line, or a secret-shaped value (known secret
+  prefix) nearby. A bare word match never fires.
+
+Measured with `node bin/crawl-seed.mjs --repo <subtree>
+--patterns` before and after, on the same mobhunter subtrees the
+hunt used (zero Jev calls):
+
+- game subtree: 1362 -> 937 seeds (-425, -31%).
+  `pattern:shell` 233 -> 0 (every one of the 233 was noise:
+  task.spawn or prose). `pattern:auth` 401 -> 180, plus 29 new
+  `pattern:auth-token` — all 29 genuinely auth-adjacent
+  (ProfileStore session tokens, AntiCheatService, API/SEC
+  reference files), zero display-name junk. Other patterns
+  unchanged.
+- web subtree: 48 -> 46 seeds. `pattern:auth` 40 -> 38.
+
+The patterns keep their intent: sanity checks confirm
+`exec('ls')`, `execSync("id")`, `os.execute(cmd)`,
+`io.popen("ls")`, and `child_process.spawn("ls")` still fire,
+while `task.spawn(fn)`, `respawn (pool)`, and prose no longer do.
+The original SESSION_SECRET finding still fires (via `auth` on
+the public `dev-secret-change-me` fallback constant) — confirmed
+by re-seeding the website subtree after the fix.
+
+Recorded as M21. Honest limit: zero shell hits on mobhunter is
+correct for this codebase (Roblox Luau has no shell access), not
+proof the pattern catches real shell injection in the wild; that
+needs a labeled positive case.

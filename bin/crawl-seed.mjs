@@ -106,11 +106,19 @@ if (seeds.includes('todo')) {
 // Seed: risky patterns (auth, money movement, dynamic code).
 if (seeds.includes('patterns')) {
   const patterns = [
-    ['auth', /\b(password|secret|token|api[_-]?key|auth|credential)\b/i, 0.8],
+    ['auth', /\b(password|secret|api[_-]?key|credential|auth)\b/i, 0.8],
+    // 'token' alone is noise (item display names, parser tokens, XML
+    // serialization, timer tokens). Require an auth qualifier, a
+    // secret-ish suffix, a context word on the same line, or a
+    // secret-shaped value nearby — never a bare word match.
+    ['auth-token', /\b(?:session|access|refresh|bearer|csrf|id|api|auth|secret|sign)[_-]?tokens?\b|\btokens?[_-]?(?:secret|key|value|password)\b|\btokens?\b.{0,60}\b(?:secret|password|credential|sign)\b|\b(?:secret|password|credential|sign)\b.{0,60}\btokens?\b|\btokens?\b\s*[:=]\s*['"](?:sk_|ghp_|xox|AKIA|ASIA|vck_|AIza|-----BEGIN)[A-Za-z0-9_\-+/=]{8,}['"]/i, 0.8],
     ['money', /\b(charge|payment|invoice|refund|payout|balance|transfer)\b/i, 0.8],
     ['dynamic-code', /\beval\s*\(|new\s+Function\s*\(/, 0.9],
     ['dynamic-require', /\brequire\s*\(\s*[^)'"]/, 0.7],
-    ['shell', /\bexec\s*\(|spawn\s*\(|system\s*\(/, 0.8],
+    // 'spawn'/'system' alone match English prose ('respawn (', 'the weather
+    // system (', deprecation docs) and Luau's task.spawn (a coroutine
+    // scheduler, not a shell). Only real OS-invocation forms count.
+    ['shell', /\bexecSync\s*\(|\bexec\s*\(|\bos\.execute\s*\(|\bio\.popen\s*\(|(?:child_process|cp)\.spawn\s*\(/, 0.8],
     ['raw-html', /\.innerHTML\s*=/, 0.6],
   ];
   for (const [name, re, prio] of patterns) {
