@@ -18,12 +18,12 @@
 import { readStdinJson, asArray, writeJson, fail } from '../lib/io.mjs';
 
 const args = process.argv.slice(2);
-let bugThreshold = 0.6;
+let riskFloor = 1;
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
-  if (a === '--bug-threshold' && args[i + 1]) bugThreshold = parseFloat(args[++i]);
+  if (a === '--risk-floor' && args[i + 1]) riskFloor = parseFloat(args[++i]);
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-verify [--bug-threshold 0.6] < judged.json');
+    console.log('usage: crawl-verify [--risk-floor 1] < judged.json');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
@@ -33,19 +33,21 @@ if (!input) fail('no judged nodes on stdin', 64);
 
 const findings = [];
 for (const { node, judgment } of asArray(input)) {
-  const routing = judgment?.routing || 'auto-prune';
-  if (routing === 'escalate-owner' || routing === 'needs-artifact') {
+  const routing = judgment?.routing || 'review-queue';
+  if (routing === 'escalate-owner' || routing === 'needs-artifact' || routing === 'review-queue') {
     findings.push({ node, judgment, status: 'escalated', artifact: null,
       note: routing === 'needs-artifact'
         ? 'judge saw a bug but the case is not falsifiable; human decides'
-        : 'serious blast radius or ambiguous evidence; human decides' });
+        : routing === 'review-queue'
+          ? 'uncertain or weak signal; human triages (review queue is the primary sink)'
+          : 'serious blast radius or ambiguous evidence; human decides' });
     continue;
   }
   if (routing !== 'file-report') continue; // expand/prune verdicts are not findings
 
-  const bugP = judgment.answers?.bug_likely?.probability ?? 0;
+  const risk = judgment.answers?.risk?.score ?? 0;
   const reasons = [];
-  if (bugP < bugThreshold) reasons.push(`bug_likely P${bugP.toFixed(2)} below threshold ${bugThreshold}`);
+  if (risk < riskFloor) reasons.push(`risk score ${risk} below floor ${riskFloor} (ranking band, not a bug probability)`);
   const artifact = assembleArtifact(node, judgment);
   if (!artifact) reasons.push('no grounded artifact could be assembled');
   else {

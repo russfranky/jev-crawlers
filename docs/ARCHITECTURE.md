@@ -33,7 +33,9 @@ The driver stops on the first of:
 1. **Budget spent**: the judgment count hits `--budget` (default 60).
 2. **Depth cap**: nodes deeper than `--depth` (default 6) are not expanded.
 3. **Empty frontier**: no leads left.
-4. **Diminishing returns**: the last 8 judgments were all prunes with bug_likely below 0.3. The crawl is no longer learning.
+4. **Diminishing returns**: the last 8 judgments were all low-risk
+   outcomes (pruned or sent to the review queue, all in the low risk
+   band). The crawl is no longer finding anything worth a human's time.
 
 ## Expansion (mechanical)
 
@@ -56,7 +58,22 @@ AST and language-server expansion is roadmap. The current text search is honest 
 
 The packer reports what it truncated in the judgment JSON.
 
-The question set (`questions/crawl-judge.json`) asks four typed questions: a `verdict` choice (expand, report, prune, escalate), a `bug_likely` boolean, a `severity` score (0-4: the index of the matched level in the ordered criteria list), and an `artifact_stated` boolean. Policy routes map answers to routing: `file-report`, `expand-node`, `auto-prune`, `needs-artifact` (the judge saw a bug but could not make it falsifiable; a human decides), and `escalate-owner`. The set is proposed and uncalibrated. Treat every probability as a ranking signal.
+The question set (`questions/crawl-judge.json`) asks four typed questions: a
+`verdict` choice (expand, report, prune, escalate) used as a suggestion, a
+`bug_likely` boolean kept as a ranking signal, a `risk` score from 0 to 3
+with ordered level criteria, and an `artifact_stated` boolean. Routing is
+driven by the risk score bands: 2 and above escalates to a human first;
+1 to 2 with an explicit report choice goes to `file-report`, where the
+verifier assembles and grounds the falsifiable artifact; below 1 with an
+explicit prune choice and support-for-false from the boolean auto-prunes. The review queue is the default route: uncertain,
+weak, or contradictory signals go to a human. No route is gated on a raw
+boolean. This follows the measured evidence: the risk score separated
+safe from unsafe in calibration (safe mean 1.16, unsafe mean 2.19, zero
+false-safe), while the raw booleans were unusable as gates, and Jev runs
+conservative and escalation-happy. Every assumption behind this design is
+classified in `docs/ASSUMPTIONS.md` as measured, research-backed, or
+unvalidated. The set is proposed and uncalibrated. Treat every
+probability as a ranking signal.
 
 ## Verification
 
@@ -66,16 +83,22 @@ The question set (`questions/crawl-judge.json`) asks four typed questions: a `ve
 - the evidence names an input or trigger and the wrong behavior;
 - the node has a non-empty code excerpt.
 
-Anything that fails becomes an **unverified lead**. The report never calls it a bug. v0 does not execute reproducers; findings say so.
+Anything that fails becomes an **unverified lead**. The report never calls it a bug. v0 does not execute reproducers; findings say so. As a defensive second check, the verifier demotes any `file-report` whose risk score sits below the `--risk-floor` (default 1): a score-band check, consistent with routing, never a boolean gate.
 
 ## Cost math
 
-Honest numbers, measured or derived from the Jev calibration work:
+Honest numbers, measured or derived from the Jev calibration work (see
+`docs/ASSUMPTIONS.md` for the register):
 
 - One normal node: about $0.00008 of Jev input tokens (output is free).
-- 500 nodes near the state cap: $0.04 to $0.05.
-- 500 nodes with realistic multi-file context: $0.17 to $0.34.
-- Latency: about 1 second per node, serial. Parallel judging is untested.
+  Derived with headroom above the measured $0.000042 per call on
+  ~1.1k-token states.
+- 500 nodes near the state cap: $0.04 to $0.05. Derived, not measured
+  end to end.
+- 500 nodes with realistic multi-file context: $0.17 to $0.34. Derived,
+  not measured end to end.
+- Latency: about 1 second per node, serial (measured p50 656 ms,
+  p95 1.6 s). Parallel judging is untested.
 
 The driver reports estimated cost per crawl. Set `--budget` to cap spend.
 

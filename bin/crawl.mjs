@@ -6,8 +6,9 @@
 //
 // The driver keeps: canonical node identity (file+symbol+scope), a visited
 // set, and a priority frontier. Termination: budget spent, depth cap,
-// empty frontier, or the diminishing-returns gate (8 straight prunes with
-// low bug_likely). Judgment calls Jev; expansion is mechanical.
+// empty frontier, or the diminishing-returns gate (8 straight low-risk
+// outcomes: pruned or sent to the review queue, all in the low risk band).
+// Judgment calls Jev; expansion is mechanical.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -71,7 +72,7 @@ const frontier = new Frontier();
 const visited = new Set();
 for (const s of seeds) frontier.push(s);
 
-const candidates = [];      // report/escalate verdicts, for crawl-verify
+const candidates = [];      // file-report | needs-artifact | escalate-owner | review-queue, for crawl-verify
 let judged = 0, pruned = 0, expanded = 0, depthCapped = 0;
 let estCostUsd = 0, totalLatencyMs = 0;
 const recent = [];          // last judgments, for the diminishing-returns gate
@@ -81,7 +82,7 @@ const stubJudgment = (node) => ({
   answers: {
     verdict: { choice: 'expand', probabilities: { expand: 1 }, top_probability: 1 },
     bug_likely: { probability: 0.5 },
-    severity: { score: 0.3 },
+    risk: { score: 1 },
     artifact_stated: { probability: 0 },
   },
   routing: 'expand-node', meaning: 'dry-run stub', latencyMs: 0, dryRun: true,
@@ -109,10 +110,11 @@ while (frontier.size > 0) {
   }
   judged++;
   totalLatencyMs += judgment.latencyMs || 0;
-  if (!dryRun) estCostUsd += 0.00008; // honest expected cost per normal node
+  if (!dryRun) estCostUsd += 0.00008; // derived: $0.042/1M input (M2) with headroom above the measured ~$0.000042/call on ~1.1k-token states, for code-heavy states
 
   const bugP = judgment.answers?.bug_likely?.probability ?? 0;
-  recent.push({ routing: judgment.routing, bugP });
+  const risk = judgment.answers?.risk?.score ?? 0;
+  recent.push({ routing: judgment.routing, bugP, risk });
   if (recent.length > 8) recent.shift();
 
   const routing = judgment.routing || 'auto-prune';
@@ -137,8 +139,11 @@ while (frontier.size > 0) {
     candidates.push({ node, judgment }); // file-report | needs-artifact | escalate-owner
   }
 
-  // Diminishing-returns gate: 8 straight prunes, all low confidence.
-  if (recent.length === 8 && recent.every((r) => r.routing === 'auto-prune' && r.bugP < 0.3)) {
+  // Diminishing-returns gate: 8 straight low-risk outcomes (pruned or sent
+  // to the review queue, all in the low risk band). The crawl is no longer
+  // finding anything worth a human's time. Uses the risk score band, never
+  // a raw boolean.
+  if (recent.length === 8 && recent.every((r) => (r.routing === 'auto-prune' || r.routing === 'review-queue') && r.risk < 1)) {
     termination = 'diminishing-returns';
     break;
   }

@@ -16,7 +16,10 @@ crawl-seed | crawl-expand | crawl-judge | crawl-verify | crawl-report
 
 - **crawl-seed**: emits starting leads. Sources: the current diff, TODO and FIXME comments, and risky patterns (auth, money movement, eval, shell).
 - **crawl-expand**: follows context cues from one lead. It finds symbol references (callers), files that change together in git history, and config files that name the symbol. It is mechanical. No model calls.
-- **crawl-judge**: one Jev call per node. Typed verdict: expand, report, prune, or escalate, with probabilities and cited evidence.
+- **crawl-judge**: one Jev call per node. Typed answers: a `verdict` suggestion
+  (expand, report, prune, escalate), a `bug_likely` ranking signal, a `risk`
+  score from 0 to 3, and whether a falsifiable artifact is stated. Routing
+  follows the risk bands; no route is gated on a raw boolean.
 - **crawl-verify**: a separate verifier. It builds a falsifiable artifact for each report candidate (reproducer sketch) and checks that the artifact is grounded in real code. Anything that fails is an **unverified lead**, never a bug.
 - **crawl-report**: renders the findings with full evidence chains.
 
@@ -47,17 +50,66 @@ Copy `.crawlersignore` into the target repo to skip generated and vendored code.
 ## Honest limits
 
 This is an experiment, not a finished product. Read this before you trust it.
+Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
+(measured, research-backed, or unvalidated).
 
-- **Jev probabilities are ranking signals, not calibrated bug confidence.** A P0.8 from the judge means "rank this above the P0.4 lead", not "this is a bug with 80% probability".
-- **No precision or recall evaluation of Jev bug detection exists yet.** The calibration data we have covers commit classification and process triage, not code-bug detection. The first release is a precision/recall experiment. See `docs/EVAL.md`.
-- **Zero data retention is requested, not promised.** The judge config asks the gateway for zero data retention. Your Vercel plan must support it. Verify routing before you send private code.
+- **Routing follows the risk score, never a raw boolean.** Our 37-case
+  calibration showed the risk score separates safe from unsafe (safe mean
+  1.16, unsafe mean 2.19, zero false-safe), while the raw booleans are
+  unusable as gates (`safe_to_automerge` recall 0.00 at threshold 0.5).
+  Policy routes are driven by the `risk` score bands; the `verdict`
+  choice and the booleans are supporting signals only.
+- **Jev probabilities are ranking signals, not calibrated bug confidence.**
+  A P0.8 from the judge means "rank this above the P0.4 lead", not "this
+  is a bug with 80% probability". The vendor says the same: choose
+  thresholds from labeled examples in your own workflow.
+- **The review queue is the primary sink.** Jev is conservative and
+  escalation-happy (`needs_human` mean 0.66 in calibration), so the
+  design treats that as the product's shape: uncertain leads go to a
+  human, escalation is a first-class outcome, and auto-prune is the
+  hardest route to take (it needs converging evidence: the judge chose
+  prune, the risk band is low, and the boolean shows support for false).
+- **No precision or recall evaluation of Jev bug detection exists yet.**
+  The calibration data covers commit classification and process triage,
+  not code-bug detection. Whether the risk-score separation transfers
+  to code nodes is the first unvalidated assumption. See `docs/EVAL.md`
+  and `docs/ASSUMPTIONS.md`.
+- **Zero data retention is requested, not promised.** The judge config
+  asks the gateway for zero data retention. Per-request ZDR is available
+  only to Pro and Enterprise customers, and a request fails if no
+  ZDR-compliant provider serves the model. Verify routing in
+  `planningReasoning` before you send private code.
 - **Jev cannot see images.** States carry text evidence only.
-- **Cost and latency are real.** In our Jev calibration runs we measured about $0.00008 per normal node, $0.04 to $0.05 for a 500-node crawl, and up to $0.17 to $0.34 with heavy multi-file context. Serial calls run about 1 second each, so a 500-node crawl takes minutes. The driver reports estimated Jev cost for every crawl. Treat the bands above as planning numbers, not promises. Budget accordingly.
-- **Verification v0 checks grounding, not execution.** The verifier confirms the artifact names real code and states an input, a wrong behavior, and a reproduction path. It does not run the reproducer. Findings say "artifact attached, reproducer not executed".
+- **Cost and latency are real.** In our Jev calibration runs we measured
+  about $0.00008 per normal node (headroom above the measured $0.000042
+  on ~1.1k-token states), $0.04 to $0.05 for a 500-node crawl near the
+  state cap, and up to $0.17 to $0.34 with heavy multi-file context. The
+  bands are derived from measured per-call cost and gateway pricing,
+  not measured end to end. Serial calls run about 1 second each, so a
+  500-node crawl takes minutes. The driver reports estimated Jev cost
+  for every crawl. Budget accordingly.
+- **Verification v0 checks grounding, not execution.** The verifier
+  confirms the artifact names real code and states an input, a wrong
+  behavior, and a reproduction path. It does not run the reproducer.
+  Findings say "artifact attached, reproducer not executed".
+- **The question set is proposed and uncalibrated.** All thresholds
+  (risk bands at 1 and 2, the prune rule, the diminishing-returns gate)
+  are reasoned, not measured. Tune them only after measuring precision
+  and recall on your own seeded bugs.
 
 ## The question set
 
-`questions/crawl-judge.json` holds the Jev question set for node verdicts. It is **proposed and uncalibrated**: the wording is reasoned, not measured. One file, human-reviewable, same format as the jev-decide runner. Tune the thresholds only after you measure precision and recall on your own seeded bugs.
+`questions/crawl-judge.json` holds the Jev question set for node verdicts. Routing
+is driven by the `risk` score bands (low: below 1, moderate: 1 to 2, high:
+2 and up), the measured strength from our calibration; no route is decided
+by a raw boolean alone. The review queue is the default sink and
+auto-prune needs converging evidence (explicit prune choice, low risk
+band, and the boolean showing support for false). The set is **proposed
+and uncalibrated**: every threshold is reasoned, not measured. One file,
+human-reviewable, same format as the jev-decide runner. See
+`docs/ASSUMPTIONS.md` for what is measured, what is research-backed, and
+what is still unvalidated. Tune the thresholds only after you measure
+precision and recall on your own seeded bugs.
 
 ## Docs
 

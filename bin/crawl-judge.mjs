@@ -2,8 +2,9 @@
 // crawl-judge — one Jev judgment per node.
 // Reads a node (or array of nodes) from stdin, writes a JSON array of
 // { node, judgment } objects. The judgment carries the typed answers
-// (verdict choice, bug_likely boolean, severity score, artifact_stated
-// boolean), the policy routing, and latency/usage.
+// (verdict choice, bug_likely boolean, risk score, artifact_stated
+// boolean), the policy routing, and latency/usage. Routing is driven by
+// the risk score bands; no route is gated on a raw boolean.
 //
 // Exit codes mirror jev-decide: 0 = judged (routing in JSON), 3 = scorer
 // error. The repo never holds a key: set AI_GATEWAY_API_KEY.
@@ -37,7 +38,7 @@ if (dryRun) {
       answers: {
         verdict: { choice: 'expand', probabilities: { expand: 1 }, top_probability: 1 },
         bug_likely: { probability: 0.5 },
-        severity: { score: 0.3 },
+        risk: { score: 1 },
         artifact_stated: { probability: 0 },
       },
       routing: 'expand-node',

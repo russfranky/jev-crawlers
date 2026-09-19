@@ -39,10 +39,11 @@ L.push('');
 const renderFinding = (f) => {
   const n = f.node || {};
   const p = f.judgment?.answers?.bug_likely?.probability;
+  const risk = f.judgment?.answers?.risk?.score;
   const lines = [];
   lines.push(`## ${n.file || '?'} :: ${n.symbol || '?'} (${n.scope || '<file>'})`);
   lines.push('');
-  lines.push(`- verdict: ${f.judgment?.routing || '?'}${p != null ? `, bug_likely P${p.toFixed(2)}` : ''}`);
+  lines.push(`- verdict: ${f.judgment?.routing || '?'}${risk != null ? `, risk ${risk}/3 (band)` : ''}${p != null ? `, bug_likely P${p.toFixed(2)} (ranking signal, not calibrated confidence)` : ''}`);
   lines.push(`- depth: ${n.depth ?? 0}, relation: ${n.relation || n.seed?.type || 'seed'}`);
   if (f.note) lines.push(`- note: ${f.note}`);
   if (f.artifact) {
