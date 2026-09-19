@@ -69,11 +69,12 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   human, escalation is a first-class outcome, and auto-prune is the
   hardest route to take (it needs converging evidence: the judge chose
   prune, the risk band is low, and the boolean shows support for false).
-- **No precision or recall evaluation of Jev bug detection exists yet.**
-  The calibration data covers commit classification and process triage,
-  not code-bug detection. Whether the risk-score separation transfers
-  to code nodes is the first unvalidated assumption. See `docs/EVAL.md`
-  and `docs/ASSUMPTIONS.md`.
+- **Only one small labeled eval of Jev bug detection exists so far.**
+  `docs/EVAL.md` §8 ran the judge on 12 labeled code nodes (6 seeded
+  bugs, 6 benign): perfect risk-band separation and routing. n=12,
+  one fixture, bugs chosen to be visible. A start, not proof.
+  Whether the separation holds on real code is still unvalidated.
+  See `docs/ASSUMPTIONS.md`.
 - **Zero data retention is requested, not promised.** The judge config
   asks the gateway for zero data retention. Per-request ZDR is available
   only to Pro and Enterprise customers, and a request fails if no

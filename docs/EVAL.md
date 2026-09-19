@@ -141,14 +141,14 @@ and the known fixture bug.
 Total Jev spend for this realignment: about $0.0015 (11 dogfood
 judgments plus 4 polish calls).
 
+
 ## 7. Known limits (not fixed here)
 
 - The question set is proposed and uncalibrated. Thresholds (risk
   bands at 1 and 2, the converging-evidence prune rule, the
-  diminishing-returns gate) are reasoned, not measured. Whether the
-  risk-score separation transfers from incident narratives to code
-  nodes is the first unvalidated assumption (U1). Measure precision
-  and recall on seeded bugs before trusting a crawl.
+  diminishing-returns gate) are reasoned, with one small labeled run
+  behind the band-1 boundary (§8, n=12). Treat them as starting
+  points until a larger labeled set confirms them.
 - Jev probabilities are ranking signals, not calibrated bug confidence.
 - Verification v0 checks artifact grounding, not execution. Running
   reproducers is roadmap.
@@ -156,3 +156,34 @@ judgments plus 4 polish calls).
   and per-request ZDR needs a Pro or Enterprise plan. Verify
   `planningReasoning` on your plan before sending private code.
 - The full assumption register is `docs/ASSUMPTIONS.md`.
+
+## 8. Labeled eval: first measurement of the judge on code (2026-09-19)
+
+`examples/labeled-eval/` holds 12 labeled nodes, ground truth by
+construction: 6 seeded bugs (off-by-one, nil deref, eval injection,
+hardcoded secret, parseInt radix, float money) and 6 benign nodes
+(pure functions, guarded accessors, a fixed loop, a constant). Labels
+never enter the node state; `run-labeled-eval.mjs` judges, then scores
+against the withheld labels. Raw rows in
+`examples/labeled-eval/results-2026-09-19.json`.
+
+| Class | risk high (>=2) | risk mid (1-2) | risk low (<1) |
+|---|---|---|---|
+| bug (6) | 4 | 2 | 0 |
+| benign (6) | 0 | 0 | 6 |
+
+- Mean risk: bugs 2.26, benign 0.13. The risk=1 band boundary
+  separates all 12.
+- `bug_likely` pairwise concordance: 1.00. Every bug outranked every
+  benign (bugs P0.76-0.93, benign P0.08-0.11). As a ranker it works
+  on this set; as a calibrated probability it remains unproven.
+- Routing: all 6 bugs reached a human (4 escalate-owner, 2
+  file-report); all 6 benign auto-pruned (explicit prune choice +
+  low band + support-for-false, the full conjunction).
+- Mean latency 1.4 s per judgment. Cost per node unrecorded by the
+  runner; about $0.00008 by the M2 band.
+
+Honest scope: n=12, one author, one fixture, bugs chosen to be
+visible. This is a start, not proof. It partially covers U1 (risk
+transfer), U2 (the band-1 boundary), and U5 (ranking). The README
+limits and the register say so.

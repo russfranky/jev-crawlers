@@ -1,0 +1,181 @@
+{
+  "summary": {
+    "n": 12,
+    "bugs": 6,
+    "benign": 6,
+    "riskBands": {
+      "bug": {
+        "high": 4,
+        "mid": 2,
+        "low": 0
+      },
+      "benign": {
+        "high": 0,
+        "mid": 0,
+        "low": 6
+      }
+    },
+    "meanRisk": {
+      "bug": 2.26,
+      "benign": 0.13
+    },
+    "bugLikelyConcordance": 1,
+    "routing": {
+      "bug": {
+        "escalate-owner": 4,
+        "file-report": 2
+      },
+      "benign": {
+        "auto-prune": 6
+      }
+    },
+    "meanLatencyMs": 1445,
+    "estCostUsd": 0
+  },
+  "rows": [
+    {
+      "id": "bugs.js::totalBroken",
+      "truth": "bug",
+      "bugType": "off-by-one",
+      "verdict": "report",
+      "risk": 2.25,
+      "riskBand": "high",
+      "bugLikely": 0.93,
+      "routing": "escalate-owner",
+      "latencyMs": 1000,
+      "estCost": null
+    },
+    {
+      "id": "bugs.js::zipOf",
+      "truth": "bug",
+      "bugType": "nil-deref",
+      "verdict": "report",
+      "risk": 1.56,
+      "riskBand": "mid",
+      "bugLikely": 0.92,
+      "routing": "file-report",
+      "latencyMs": 327,
+      "estCost": null
+    },
+    {
+      "id": "bugs.js::applyDiscount",
+      "truth": "bug",
+      "bugType": "injection",
+      "verdict": "escalate",
+      "risk": 2.95,
+      "riskBand": "high",
+      "bugLikely": 0.92,
+      "routing": "escalate-owner",
+      "latencyMs": 296,
+      "estCost": null
+    },
+    {
+      "id": "bugs.js::STRIPE_KEY",
+      "truth": "bug",
+      "bugType": "hardcoded-secret",
+      "verdict": "escalate",
+      "risk": 2.95,
+      "riskBand": "high",
+      "bugLikely": 0.92,
+      "routing": "escalate-owner",
+      "latencyMs": 12938,
+      "estCost": null
+    },
+    {
+      "id": "bugs.js::parseQty",
+      "truth": "bug",
+      "bugType": "radix",
+      "verdict": "report",
+      "risk": 1.57,
+      "riskBand": "mid",
+      "bugLikely": 0.89,
+      "routing": "file-report",
+      "latencyMs": 421,
+      "estCost": null
+    },
+    {
+      "id": "bugs.js::chargeAmount",
+      "truth": "bug",
+      "bugType": "float-money",
+      "verdict": "report",
+      "risk": 2.25,
+      "riskBand": "high",
+      "bugLikely": 0.76,
+      "routing": "escalate-owner",
+      "latencyMs": 407,
+      "estCost": null
+    },
+    {
+      "id": "benign.js::clamp",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.11,
+      "riskBand": "low",
+      "bugLikely": 0.11,
+      "routing": "auto-prune",
+      "latencyMs": 330,
+      "estCost": null
+    },
+    {
+      "id": "benign.js::newCart",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.04,
+      "riskBand": "low",
+      "bugLikely": 0.08,
+      "routing": "auto-prune",
+      "latencyMs": 326,
+      "estCost": null
+    },
+    {
+      "id": "benign.js::zipOfSafe",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.07,
+      "riskBand": "low",
+      "bugLikely": 0.1,
+      "routing": "auto-prune",
+      "latencyMs": 292,
+      "estCost": null
+    },
+    {
+      "id": "benign.js::addItemSafe",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.09,
+      "riskBand": "low",
+      "bugLikely": 0.09,
+      "routing": "auto-prune",
+      "latencyMs": 287,
+      "estCost": null
+    },
+    {
+      "id": "benign.js::totalFixed",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.43,
+      "riskBand": "low",
+      "bugLikely": 0.11,
+      "routing": "auto-prune",
+      "latencyMs": 409,
+      "estCost": null
+    },
+    {
+      "id": "benign.js::VERSION",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.06,
+      "riskBand": "low",
+      "bugLikely": 0.1,
+      "routing": "auto-prune",
+      "latencyMs": 305,
+      "estCost": null
+    }
+  ]
+}

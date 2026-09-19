@@ -69,6 +69,17 @@ nodes near the state cap; up to $0.17 to $0.34 with heavy multi-file
 context. Derivation: M2 pricing times measured token counts. A 500-node
 live crawl has not been run (U10).
 
+**M11. Small labeled eval of the judge on code (n=12, 2026-09-19).**
+6 seeded bugs and 6 benign nodes from `examples/labeled-eval/`
+(labels withheld from the judge). Risk bands: bugs 4 high / 2 mid /
+0 low; benign 0 high / 0 mid / 6 low; mean risk 2.26 vs 0.13, the
+risk=1 boundary separating all 12. `bug_likely` pairwise concordance
+1.00 (bugs P0.76-0.93, benign P0.08-0.11). Routing: all 6 bugs to a
+human (4 escalate, 2 file-report); all 6 benign auto-pruned. Source:
+`docs/EVAL.md` §8 and `examples/labeled-eval/results-2026-09-19.json`.
+Scope: one author, one fixture, visible bugs. Partially covers U1,
+U2, U5; does not replace them.
+
 ## Research-backed
 
 **R1. Jev's I/O contract.** "Jev is a probabilistic decision model for
@@ -143,16 +154,19 @@ why U1, U2, U4, and U5 are unvalidated rather than merely unmeasured.
 Each names the experiment that would validate it. Do not cite any of
 these as evidence.
 
-**U1. Risk-score separation transfers to code nodes.** M4 was measured
-on incident narratives and commit diffs. Whether the `risk` score bands
-separate real bugs from benign code is unknown. Validate: a labeled set
-of code nodes (seeded bugs plus benign nodes); measure precision and
-recall per risk band.
+**U1. Risk-score separation transfers to code nodes (partially
+measured).** M4 was measured on incident narratives and commit diffs.
+M11 (n=12 labeled code nodes) shows the bands separating bugs from
+benign code on one fixture. Full transfer to real-world code is still
+unvalidated. Validate further: a larger labeled set from real repos;
+measure precision and recall per risk band.
 
-**U2. The thresholds are reasoned, not measured.** Risk bands at 1 and
-2, `artifact_stated` at 0.5, the converging-evidence prune rule, and
-the diminishing-returns gate were chosen by reasoning. Validate: sweep
-thresholds on the labeled set from U1; measure mistakes against review
+**U2. The thresholds are reasoned, lightly probed (partially
+measured).** Risk bands at 1 and 2, `artifact_stated` at 0.5, the converging-evidence prune rule, and
+the diminishing-returns gate were chosen by reasoning. M11 (n=12)
+shows the band-1 boundary separating bugs from benign on one fixture.
+Validate further: sweep
+thresholds on a larger labeled set; measure mistakes against review
 volume per the vendor's method (R2): "choose a cutoff by measuring
 mistakes and review volume on representative labeled cases."
 
@@ -166,9 +180,11 @@ M9 covers commit classification. Whether expand/report/prune/escalate
 distributes usefully on code leads is unknown. Validate: labeled node
 set; measure per-class precision and recall of the choice.
 
-**U5. `bug_likely` ranks code bugs.** The boolean's discrimination was
-never measured on code. Validate: AUC of `bug_likely` against ground
-truth on seeded bugs.
+**U5. `bug_likely` ranks code bugs (partially measured).** M11 (n=12)
+shows pairwise concordance 1.00 on one fixture, but concordance is a
+ranking property, not calibration. Validate further: larger labeled
+set; report ranking metrics and keep the "ranking signal, not
+calibrated confidence" label until a calibration run says otherwise.
 
 **U6. Mechanical expansion reaches real bug context.** Symbol refs,
 co-change history, and config refs are honest but unproven. Validate:
