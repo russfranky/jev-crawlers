@@ -430,3 +430,51 @@ Recorded as M21. Honest limit: zero shell hits on mobhunter is
 correct for this codebase (Roblox Luau has no shell access), not
 proof the pattern catches real shell injection in the wild; that
 needs a labeled positive case.
+
+## 17. Dogfood run: the crawler on its own codebase (2026-09-19)
+
+The system was turned on itself to answer the owner's question of
+whether it can improve itself. Command:
+
+```
+node bin/crawl.mjs --repo ~/workspace/jev-crawlers --budget 50 \
+  --json report.json --stats-json
+```
+
+Measured (real Jev calls, real pipeline):
+
+- seeds: 76; judgments: 21 (budget 50 not reached);
+  termination: frontier-empty
+- pruned: 13, expanded: 1, depth-capped: 0
+- candidates: 7 — all escalated (6 escalate-owner, 1 review-queue);
+  0 file-reports, 0 verified bugs, 0 unverified leads
+- driver-estimated cost: $0.00121; wall time: 26.1 s;
+  avg judgment latency: 866 ms
+
+Triaged every candidate by reading the cited file:line. All 7 are
+false positives, not real bugs in the crawler's code:
+
+1. `examples/labeled-eval/bugs.js:21` (`return eval(userExpr)`) —
+   intentional seeded bug in the labeled-eval fixture, not product code.
+2. `questions/crawl-judge.json:1` — the `auth` pattern fired on the
+   judge config's own instructions prose ("auth weakness",
+   "auth bypass"); self-referential noise.
+3. `docs/ASSUMPTIONS.md:37` — `money` pattern fired on the English
+   word "Transfer" in prose; documentation, not code.
+4. `examples/cost-eval/run-cost-eval.mjs:84` — a secret-scan log
+   message ("secret-shaped values"), not a secret.
+5. `examples/labeled-eval/results-2026-09-19.json:75` —
+   `"bugType": "hardcoded-secret"` in a fixture results file.
+6. `examples/labeled-eval/run-labeled-eval.mjs:20` — the fixture's
+   label map mentioning `STRIPE_KEY`.
+7. `examples/todo-app/checkout.js:8` — a TODO comment in a fixture
+   ("round to cents before charging").
+
+Independent check: the full pipeline code (bin/ + lib/, ~1300 lines)
+was read end to end during this run. No real bug found there either.
+Nothing was fixed because there was nothing to fix — a clean bill of
+health is the result. Recorded as M22. Honest limit: a 34-file,
+21-judgment crawl is a small target; absence of findings here does
+not prove the absence of bugs, and the judge's 0 file-reports on this
+run match its measured conservative behavior on real code (M20's
+natural-routing variant).

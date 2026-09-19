@@ -222,6 +222,25 @@ judgments at the same per-node rate. ZDR requested on every call
 (`zeroDataRetention: true` in the question config); per M12/R4 each
 operator still verifies routing on their own plan.
 
+**M22. Dogfood self-crawl: clean bill of health (measured
+2026-09-19).** `node bin/crawl.mjs --repo <the repo itself> --budget
+50` ran the real pipeline on its own 34-file codebase: 76 seeds, 21
+judgments, termination frontier-empty (budget not reached), 13 pruned,
+1 expanded, 7 candidates — all escalated (6 escalate-owner, 1
+review-queue), 0 file-reports, 0 bugs. Driver-estimated cost
+$0.00121; wall 26.1 s; avg judgment latency 866 ms. Every candidate
+was triaged by reading the cited file:line and all 7 are false
+positives: 4 eval fixtures (the intentional `eval` in labeled-eval's
+bugs.js, fixture results/labels JSON, a fixture TODO), 1 prose hit in
+docs, 1 self-referential hit (the `auth` pattern firing on the judge
+config's own "auth weakness"/"auth bypass" instructions), and 1
+secret-scan log message. An independent end-to-end read of the
+pipeline code (bin/ + lib/, ~1300 lines) found no real bug either, so
+nothing was changed — the clean bill of health is the result.
+Recorded in docs/EVAL.md §17. Honest limit: 21 judgments on a small
+target cannot prove the absence of bugs; 0 file-reports matches the
+judge's measured conservative behavior on real code (M20 natural
+routing).
 
 ## Research-backed
 
