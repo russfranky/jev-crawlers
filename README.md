@@ -85,20 +85,28 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   `providerMetadata.gateway.routing.planningReasoning` before you
   send private code.
 - **Jev cannot see images.** States carry text evidence only.
-- **Cost and latency are real.** Live judgments cost about $0.000035
-  per call (gateway-reported list cost, 2026-09-19), inside our
-  measured $0.000042 band. Budget $0.00008 per call as headroom for
-  heavy context; the driver uses the gateway-reported cost when it is
-  present. That puts a 500-node crawl at $0.04 to $0.05 near the
-  state cap, and up to $0.17 to $0.34 with heavy multi-file context. The
-  bands are derived from measured per-call cost and gateway pricing,
-  not measured end to end. Serial calls run about 1 second each, so a
-  500-node crawl takes minutes. The driver reports the cost
-  for every crawl. Budget accordingly.
+- **Cost and latency are measured.** Live judgments cost about $0.00006
+  per call (gateway-reported list cost, mean over 493 nodes on a real
+  repo, 2026-09-19), inside the $0.00008 per-call headroom budget. A
+  500-node crawl measured $0.03 total, 1,432 mean input tokens per node,
+  10.2 minutes wall clock at 6-parallel judging, mean latency 2.5 s per
+  call. The driver uses the gateway-reported cost when it is present and
+  reports the cost for every crawl. Heavy multi-file context can cost
+  more; that upper band is still derived, not measured. Budget
+  accordingly.
+- **No secret redaction.** Excerpts go to the gateway as-is. Only `.env`
+  files are excluded from reading. Scan for secret-shaped values before
+  crawling private code, and verify ZDR routing on your plan (see above).
 - **Verification v0 checks grounding, not execution.** The verifier
   confirms the artifact names real code and states an input, a wrong
   behavior, and a reproduction path. It does not run the reproducer.
-  Findings say "artifact attached, reproducer not executed".
+  Measured 2026-09-19 (M18): on 6 human-confirmed bugs with real
+  pipeline evidence, the verifier demoted all 6 to unverified leads —
+  its grounding vocabulary does not match what the seeders emit, so
+  the "verified bug" status is currently unreachable on real pipeline
+  output. Findings say "artifact attached, reproducer not executed",
+  and every file-report stays an unverified lead until the pipeline
+  emits evidence the verifier accepts.
 - **The question set is proposed and uncalibrated.** All thresholds
   (risk bands at 1 and 2, the prune rule, the diminishing-returns gate)
   are reasoned, not measured. Tune them only after measuring precision

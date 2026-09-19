@@ -1,0 +1,310 @@
+{
+  "date": "2026-09-19",
+  "n": 12,
+  "bugs": 6,
+  "benign": 6,
+  "judgeRoutings": {
+    "escalate-owner": 4,
+    "file-report": 2,
+    "auto-prune": 6
+  },
+  "judgeRoutingsByClass": {
+    "bug": [
+      "bugs.js::totalBroken=escalate-owner",
+      "bugs.js::zipOf=file-report",
+      "bugs.js::applyDiscount=escalate-owner",
+      "bugs.js::STRIPE_KEY=escalate-owner",
+      "bugs.js::parseQty=file-report",
+      "bugs.js::chargeAmount=escalate-owner"
+    ],
+    "benign": [
+      "benign.js::clamp=auto-prune",
+      "benign.js::newCart=auto-prune",
+      "benign.js::zipOfSafe=auto-prune",
+      "benign.js::addItemSafe=auto-prune",
+      "benign.js::totalFixed=auto-prune",
+      "benign.js::VERSION=auto-prune"
+    ]
+  },
+  "variants": [
+    {
+      "variant": "V-attached x R-forced (primary)",
+      "n": 12,
+      "acceptedBugs": 0,
+      "acceptedBenign": 0,
+      "demotedBugs": 6,
+      "demotedBenign": 6,
+      "escalatedOrSkipped": 0,
+      "precision": null,
+      "recall": 0,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.55,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.63,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.8,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.94,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.5,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.3,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::clamp",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.11,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.11 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::newCart",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.03,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.03 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::zipOfSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.06,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::addItemSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.1,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.1 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::totalFixed",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.44,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.44 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::VERSION",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.07,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        }
+      ]
+    },
+    {
+      "variant": "V-strict x R-forced (as-shipped pipeline)",
+      "n": 12,
+      "acceptedBugs": 0,
+      "acceptedBenign": 0,
+      "demotedBugs": 6,
+      "demotedBenign": 6,
+      "escalatedOrSkipped": 0,
+      "precision": null,
+      "recall": 0,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.55,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.63,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.8,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.94,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.5,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.3,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::clamp",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.11,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.11 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::newCart",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.03,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.03 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::zipOfSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.06,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::addItemSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.1,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.1 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::totalFixed",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.44,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.44 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "benign.js::VERSION",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.07,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        }
+      ]
+    },
+    {
+      "variant": "V-attached x R-natural (production routing)",
+      "n": 6,
+      "acceptedBugs": 0,
+      "acceptedBenign": 0,
+      "demotedBugs": 2,
+      "demotedBenign": 0,
+      "escalatedOrSkipped": 4,
+      "precision": null,
+      "recall": 0,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.55,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.63,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.8,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.94,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.5,
+          "status": "unverified-lead",
+          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.3,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        }
+      ]
+    }
+  ]
+}

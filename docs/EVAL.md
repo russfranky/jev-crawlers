@@ -282,3 +282,64 @@ actionable findings; iteration 5 produced only a thin single-case
 ablation and two inconclusive attempts. The register now holds 17
 measured entries (M1-M17); U1-U6, U8, U9 are partially measured;
 U7 and U10 remain fully unvalidated with named experiments.
+
+## 13. U7 verifier experiment: the verifier demotes every true bug (2026-09-19)
+
+Ran the named experiment for real (`examples/verifier-eval/`,
+12 calls, about $0.0004). 6 human-confirmed bugs + 6 benign nodes
+from the labeled fixture, evidence strings byte-identical to real
+`crawl-seed` output, judge run for real with labels withheld
+(bugs: 4 escalate / 2 file-report; benign: 6 auto-prune). To isolate
+the verifier, routing was forced to file-report on all 12 while
+keeping the judge's real answers; the verifier itself is
+deterministic, so all variants were free.
+
+Result: the verifier accepted **0/6 bugs and 0/6 benign** —
+recall 0.00, precision undefined (no accepts). All 6 bugs demoted
+to unverified leads on grounding gaps. Only 1 of 12 nodes carried
+any real seeder evidence at all (applyDiscount, the eval
+injection); even it was demoted ("no input or trigger"). The
+grounding regexes demand judge-like vocabulary that raw seeder
+lines never contain; `groundedGaps` ignores `node.seed`; the
+verifier never consults the judge's 'report' verdict. Control:
+the same bug with vocabulary-carrying evidence is accepted as
+'bug', so the gate is satisfiable — the pipeline just never
+feeds it.
+
+Recorded as M18; U7's positive claim is NOT validated. As shipped,
+the verifier is safe (nothing false gets called a bug) but its
+"verified bug" status is unreachable on real pipeline output.
+Re-test after the pipeline emits evidence in the grounding
+vocabulary, or the verifier reads the judge's stated artifact.
+
+## 14. U10 cost experiment: 493 nodes judged on a real repo (2026-09-19)
+
+Ran the named experiment for real (`examples/cost-eval/`,
+493 successful judgments, $0.02965 total — inside the $0.10 cap).
+Real `crawl-seed --patterns --todo` on the owner's mobhunter repo
+(1,781 seeds in 6.7 s); top 500 by priority; excerpts attached
+exactly as the driver does (30-line window); real `crawl-judge`
+in parallel batches of 6 (the M14 setup).
+
+Measured: **705,863 input tokens** (mean 1,432/node), 49,081
+output tokens, **$0.02965 spend** (gateway `marketCost` present on
+all 493 calls; mean **$0.00006/node**), **10.2 min wall clock**,
+mean latency 2.5 s/call under parallel-6, 4 nodes truncated.
+Routing mix on real code: 254 expand, 113 auto-prune, 89
+escalate-owner, 29 review-queue, 7 file-report, 1 needs-artifact.
+7/500 nodes failed: 2 transient `GatewayInternalServerError`
+(after 3 retries — a new failure mode beside M8's 429s) and 5 on
+pathological 300KB+ single-line JSON research files whose judge
+output was unparseable.
+
+Safety: every excerpt was secret-scanned before sending —
+0/500 dropped, no secret-shaped values found. Verified by code
+inspection the same day: the tooling has NO secret redaction;
+only `.env` files are excluded from reading. Excerpts go to the
+gateway as-is, so private-code crawls need the pre-send scan
+(this experiment's script does it) and ZDR verification per
+M12/R4.
+
+Recorded as M19; M10's derived $0.04-$0.05 band for 500 nodes is
+superseded (measured $0.03). Scope: seed nodes only — a real
+crawl's expansion adds judgments at the same per-node rate.

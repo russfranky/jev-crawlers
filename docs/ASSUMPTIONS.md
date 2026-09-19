@@ -62,12 +62,14 @@ hard stop for that run. Source: REPORT.md §3.
 clean. Source: REPORT.md §7. This is the closest measured analog to
 the `verdict` choice, but code-node verdicts are still UNVALIDATED (U4).
 
-**M10. Per-crawl cost bands are derived, not measured end to end.**
-$0.00008 per normal node (headroom above the measured $0.000042 on
-~1.1k-token states, for code-heavy states); $0.04 to $0.05 per 500
+**M10. Per-crawl cost bands were derived, then measured (see M19).**
+$0.00008 per normal node was headroom above the measured $0.000042 on
+~1.1k-token states, for code-heavy states; $0.04 to $0.05 per 500
 nodes near the state cap; up to $0.17 to $0.34 with heavy multi-file
-context. Derivation: M2 pricing times measured token counts. A 500-node
-live crawl has not been run (U10).
+context. Derivation: M2 pricing times measured token counts.
+Superseded for the base case by M19 (measured 2026-09-19: $0.02965
+for 493 nodes, mean $0.00006/node). The heavy-context upper band
+remains derived.
 
 **M11. Small labeled eval of the judge on code (n=12, 2026-09-19).**
 6 seeded bugs and 6 benign nodes from `examples/labeled-eval/`
@@ -88,6 +90,30 @@ the choice is a supporting signal, risk bands drive routing.
 **M17. State-cap ablation, small states (2026-09-19).** Routing
 agreed 6/6 across 2k/6k/12k caps on 2 nodes; risk stable; no
 truncation fired. Partially covers U3; large states untested.
+
+**M18. The verifier demotes all true bugs on real pipeline evidence
+(n=12, 2026-09-19).** `examples/verifier-eval/`: 6 human-confirmed bugs
++ 6 benign nodes from the labeled fixture; evidence strings byte-identical
+to real `crawl-seed` output (only 1 of 12 nodes had any seeder evidence;
+seeds carry `evidence: []` as shipped). Judge run for real (bugs 4
+escalate / 2 file-report, benign 6 auto-prune); routing forced to
+file-report to isolate the verifier, judge's real answers kept. Verifier:
+accepted **0/6 bugs, 0/6 benign** — recall 0.00, precision undefined (no
+accepts at all). All 6 bugs demoted on grounding gaps: 5 on "no input or
+trigger" + "no wrong behavior", 1 (applyDiscount, the eval injection, the
+only node with real seeder evidence) on "no input or trigger" alone. Root
+causes: (1) the grounding regexes demand judge-like vocabulary
+("input/trigger/call", "wrong/bug/fail") but real seeder evidence is raw
+code lines; (2) `groundedGaps` scans `node.evidence` only and ignores
+`node.seed`; (3) the verifier never consults the judge's own stated
+artifact (the 'report' verdict choice, `artifact_stated`). Control: the
+same bug node with vocabulary-carrying evidence is accepted as 'bug' —
+the gate is satisfiable, the pipeline just never feeds it. Source:
+`examples/verifier-eval/results-2026-09-19.json`. Design consequence: as
+shipped, the verifier's grounding decision carries no signal on real
+pipeline output — every file-report becomes an unverified lead and stays
+with a human, which is safe but means the "verified bug" status is
+currently unreachable. U7's positive claim is NOT validated.
 
 **M12. ZDR planning confirmed live on our plan (2026-09-19).** One
 call with `zeroDataRetention: true` returned 200 with
@@ -115,6 +141,31 @@ succeeded, zero 429s. Per-call latency rose to 4.1-4.8 s (from about
 mechanical expansion reached `checkout.js` (the caller) at depth 1
 via symbol refs; frontier emptied by depth 3. One case. Partially
 covers U6.
+
+**M19. End-to-end crawl cost, measured on 493 nodes (2026-09-19).**
+`examples/cost-eval/`: real `crawl-seed --patterns --todo` on the
+owner's mobhunter repo (1,781 seeds), top 500 by priority, excerpts
+attached exactly as the driver does (30-line window). Every excerpt
+was secret-scanned before sending: 0/500 dropped, no secret-shaped
+values found. Note: the tooling has NO secret redaction (verified by
+code inspection 2026-09-19) — only `.env` files are excluded from
+reading; excerpts go to the gateway as-is. 493/500 nodes judged via
+the real `crawl-judge` in parallel batches of 6; 7 failed (2
+transient `GatewayInternalServerError` after 3 retries, 5 on
+pathological 300KB+ single-line JSON research files whose judge
+output was unparseable). Measured: 705,863 input tokens (mean
+1,432/node), 49,081 output tokens, **$0.02965 total spend**
+(gateway `marketCost` present on all 493; mean **$0.00006/node**),
+10.2 min wall clock, mean latency 2.5 s/call under parallel-6,
+4 nodes truncated. Routing mix on real code: 254 expand, 113
+auto-prune, 89 escalate-owner, 29 review-queue, 7 file-report,
+1 needs-artifact. Source:
+`examples/cost-eval/results-2026-09-19.json`. Scope: seed nodes
+only, no expansion judgments; a real crawl's expansion adds more
+judgments at the same per-node rate. ZDR requested on every call
+(`zeroDataRetention: true` in the question config); per M12/R4 each
+operator still verifies routing on their own plan.
+
 
 ## Research-backed
 
@@ -236,14 +287,17 @@ over many seeded bugs with known true context, and whether depth-1
 noise (README.md matched the symbol by text search) drowns the
 signal at scale.
 
-**U7. Verifier grounding approximates bug validity (still
-unvalidated).** Two attempts, both inconclusive. Synthetic probe:
-2 file-report judgments on true bugs were both demoted, but the
-probe nodes carried empty evidence, so the demotion was correct
-verifier behavior on bad input, not a measurement. Real pipeline:
-on the labeled fixture all seeds escalated, so the verifier never
-saw a true bug. A valid test needs a file-report judgment with real
-pipeline evidence on a human-confirmed bug; not yet run.
+**U7. Verifier grounding approximates bug validity (measured negative,
+2026-09-19).** M18 ran the named experiment: file-report judgments with
+real pipeline evidence on 6 human-confirmed bugs. The verifier accepted
+0/6 — the positive claim is NOT validated. As shipped, the verifier's
+grounding regexes expect judge-like vocabulary ("input/trigger/call",
+"wrong/bug/fail") that real seeder evidence (raw code lines) never
+contains, `groundedGaps` ignores `node.seed`, and the verifier never
+reads the judge's stated artifact. A valid re-test needs the pipeline to
+emit evidence in the grounding vocabulary, or the verifier to consult
+the judge's 'report' verdict and `artifact_stated` answer; then re-run
+`examples/verifier-eval/`.
 
 **U8. ZDR actually routes for `typesafe-ai/jev` on your plan
 (partially measured).** Requested via `zeroDataRetention: true`;
@@ -259,8 +313,12 @@ serial), 6/6 succeeded, zero 429s. Per-call latency degraded to
 at higher per-call cost. The driver stays serial for now; parallel
 judging is viable when latency budgets demand it.
 
-**U10. End-to-end crawl cost.** M10 is derived. Validate: run a
-500-node crawl and measure actual input tokens and spend.
+**U10. End-to-end crawl cost (measured 2026-09-19, see M19).** The
+derived bands are now anchored: 493 judged nodes on a real repo cost
+$0.02965 total at $0.00006/node mean, 1,432 mean input tokens, 10.2 min
+wall at parallel-6. Still unmeasured: expansion-heavy crawls (cost
+scales with judgments at the measured per-node rate) and the heavy
+multi-file context upper band ($0.17-$0.34, still derived).
 
 ## What changed in the 2026-09-19 realignment
 

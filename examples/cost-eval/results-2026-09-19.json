@@ -1,0 +1,51 @@
+{
+  "date": "2026-09-19",
+  "repo": "/home/hatch/workspace/mobhunter",
+  "seedsTotal": 1781,
+  "nodesRequested": 500,
+  "nodesJudged": 493,
+  "nodesFailed": 7,
+  "secretDropped": 0,
+  "secretFiles": 0,
+  "parallel": 6,
+  "wallMs": 614921,
+  "wallMin": 10.2,
+  "inputTokens": 705863,
+  "outputTokens": 49081,
+  "meanInputTokens": 1432,
+  "spendUsd": 0.02965,
+  "spendMissingMarketCost": 0,
+  "meanSpendPerNodeUsd": 0.00006,
+  "meanLatencyMs": 2456,
+  "truncatedNodes": 4,
+  "routings": {
+    "expand-node": 254,
+    "escalate-owner": 89,
+    "auto-prune": 113,
+    "file-report": 7,
+    "review-queue": 29,
+    "needs-artifact": 1
+  },
+  "errors": [
+    {
+      "id": ".claude/memory-bank/PATTERNS.md::<file>::?",
+      "error": "exit 3: crawl-judge: WARNING set \"crawl-judge\" is proposed/un-calibrated; result is advisory only.\ncrawl-judge ERROR: Failed after 3 attempts. Last error: GatewayInternalServerError: Service temporarily unava"
+    },
+    {
+      "id": "docs/research/_raw/anticheat-exploit-catalog.json::<file>::?",
+      "error": "parse: Unterminated string in JSON at position 145803 (line 15 column 145280)"
+    },
+    {
+      "id": "docs/research/_raw/profile-schema-migration.json::<file>::?",
+      "error": "parse: Unexpected end of JSON input"
+    },
+    {
+      "id": "docs/research/_raw/reference-economy-at-30-ccu.json::<file>::?",
+      "error": "parse: Unterminated string in JSON at position 145684 (line 15 column 145157)"
+    },
+    {
+      "id": "mobhunter/docs/qa-parts/ECON.json::<file>::?",
+      "error": "exit 3: crawl-judge: WARNING set \"crawl-judge\" is proposed/un-calibrated; result is advisory only.\ncrawl-judge ERROR: Failed after 3 attempts. Last error: GatewayInternalServerError: Service temporarily unava"
+    }
+  ]
+}
