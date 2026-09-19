@@ -253,3 +253,32 @@ Probe cost: 7 live calls, about $0.00025.
   numbers and attributions are unchanged.
 
 Audit cost: 2 calls, about $0.00007.
+
+## 12. U3 ablation, U7 attempts, final dogfood: diminishing returns (2026-09-19)
+
+- **U3, state-cap ablation (6 calls).** 2 nodes (1 bug, 1 benign)
+  judged at 2k/6k/12k caps: routing agreed 6/6, risk stable
+  (1.66-1.70 bug, 0.05-0.09 benign), no truncation fired. The cap
+  does not bind on small states; large states remain untested.
+  Recorded as M17; U3 partially measured.
+- **U7, two attempts, both inconclusive.** Synthetic probe: 2
+  file-report judgments on true bugs were demoted to unverified
+  leads, but the probe nodes had empty evidence, so the demotion
+  was correct behavior on bad input, not a measurement. Real
+  pipeline on the labeled fixture: all 3 pattern seeds escalated,
+  so the verifier never saw a true bug. U7 stays unvalidated; the
+  register records what a valid test needs.
+- **Final dogfood** (`--seed todo --seed patterns --budget 14` on
+  this repo): 15 nodes, 14 judgments, 0 bugs, 0 unverified leads,
+  5 escalated, ~$0.00076. Human review of all 5: 1 true fixture
+  bug correctly escalated (applyDiscount, risk 2.97); 4 seeder
+  keyword noise on docs/config (the known dismissed class). Zero
+  new actionable findings.
+
+Probe cost for this round: about $0.0004 (15 calls).
+
+**Loop exit: diminishing returns.** Iteration 6 produced zero
+actionable findings; iteration 5 produced only a thin single-case
+ablation and two inconclusive attempts. The register now holds 17
+measured entries (M1-M17); U1-U6, U8, U9 are partially measured;
+U7 and U10 remain fully unvalidated with named experiments.

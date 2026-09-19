@@ -85,6 +85,10 @@ labeled set the choice never crossed classes: bugs 4 report / 2
 escalate / 0 prune / 0 expand; benign 6 prune. Partially covers U4;
 the choice is a supporting signal, risk bands drive routing.
 
+**M17. State-cap ablation, small states (2026-09-19).** Routing
+agreed 6/6 across 2k/6k/12k caps on 2 nodes; risk stable; no
+truncation fired. Partially covers U3; large states untested.
+
 **M12. ZDR planning confirmed live on our plan (2026-09-19).** One
 call with `zeroDataRetention: true` returned 200 with
 planningReasoning: "System credentials planned for: typesafe-ai. ZDR
@@ -202,10 +206,12 @@ thresholds on a larger labeled set; measure mistakes against review
 volume per the vendor's method (R2): "choose a cutoff by measuring
 mistakes and review volume on representative labeled cases."
 
-**U3. The 6,000-char state cap suffices.** Calibration states averaged
-about 1,600 chars; code excerpts near the cap are untested. Validate:
-ablation on the same nodes at 2k, 6k, and 12k chars; measure routing
-agreement and cost per node.
+**U3. The 6,000-char state cap suffices (partially measured).**
+M17: routing agreed 6/6 across 2k/6k/12k caps on 2 nodes (1 bug, 1
+benign), risk stable, no truncation triggered at any cap. The cap
+does not bind on small states. Untested: large multi-file states
+where truncation actually fires. Validate further: ablation on
+nodes whose states exceed 6k chars.
 
 **U4. The verdict choice behaves on code nodes (partially measured).**
 M16: on the 12 labeled nodes the choice never crossed classes: bugs
@@ -230,11 +236,14 @@ over many seeded bugs with known true context, and whether depth-1
 noise (README.md matched the symbol by text search) drowns the
 signal at scale.
 
-**U7. Verifier grounding approximates bug validity.** v0 checks that
-the artifact names real locations and states an input, a wrong
-behavior, and a reproduction path; it does not execute anything.
-Validate: compare the grounding pass rate against human-confirmed true
-bugs on the labeled set.
+**U7. Verifier grounding approximates bug validity (still
+unvalidated).** Two attempts, both inconclusive. Synthetic probe:
+2 file-report judgments on true bugs were both demoted, but the
+probe nodes carried empty evidence, so the demotion was correct
+verifier behavior on bad input, not a measurement. Real pipeline:
+on the labeled fixture all seeds escalated, so the verifier never
+saw a true bug. A valid test needs a file-report judgment with real
+pipeline evidence on a human-confirmed bug; not yet run.
 
 **U8. ZDR actually routes for `typesafe-ai/jev` on your plan
 (partially measured).** Requested via `zeroDataRetention: true`;
