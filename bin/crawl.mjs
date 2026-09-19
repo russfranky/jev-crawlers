@@ -110,7 +110,10 @@ while (frontier.size > 0) {
   }
   judged++;
   totalLatencyMs += judgment.latencyMs || 0;
-  if (!dryRun) estCostUsd += 0.00008; // derived: $0.042/1M input (M2) with headroom above the measured ~$0.000042/call on ~1.1k-token states, for code-heavy states
+  // Prefer the gateway-reported list cost when present (M13); the M2
+  // estimate is the fallback.
+  if (!dryRun) estCostUsd += (typeof judgment.marketCostUsd === 'number' && judgment.marketCostUsd >= 0)
+    ? judgment.marketCostUsd : 0.00008;
 
   const bugP = judgment.answers?.bug_likely?.probability ?? 0;
   const risk = judgment.answers?.risk?.score ?? 0;

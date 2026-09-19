@@ -187,3 +187,27 @@ Honest scope: n=12, one author, one fixture, bugs chosen to be
 visible. This is a start, not proof. It partially covers U1 (risk
 transfer), U2 (the band-1 boundary), and U5 (ranking). The README
 limits and the register say so.
+
+## 9. ZDR live check, confidence surfacing, real cost (2026-09-19)
+
+One live call with `zeroDataRetention: true` (the shipped default):
+200, planningReasoning "System credentials planned for: typesafe-ai.
+ZDR requested: all 1 attempts support ZDR." U8 is partially measured
+(one key, one plan); the README now says "verified on our plan,
+verify on yours" and names the `--show-metadata` command that shows
+the routing.
+
+The same call exposed two live fields the judge was dropping:
+
+- `providerMetadata.typesafe.confidence`: per-question Jev
+  confidence (risk 0.98, verdict 0.94 on the probe), exactly where R2
+  said it lives. The judge now attaches it to answers as
+  `confidence`; reports print it labeled "vendor-reported,
+  uncalibrated", never as calibration.
+- `providerMetadata.gateway.marketCost`: $0.000035 for the call,
+  inside the measured $0.000042 band. The judge returns it as
+  `marketCostUsd`; the driver prefers it over the $0.00008 estimate.
+
+`crawl-judge --show-metadata` now exists so operators can read both
+on their own plan; metadata is stripped from default output. Cost of
+this iteration's probes: 2 live calls, about $0.00007.

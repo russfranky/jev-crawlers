@@ -10,19 +10,24 @@
 // error. The repo never holds a key: set AI_GATEWAY_API_KEY.
 // --dry-run returns a deterministic stub judgment without calling Jev
 // (for pipeline tests; never for real verdicts).
+// --show-metadata includes providerMetadata (planningReasoning, Jev
+// confidence) so operators can verify ZDR routing on their own plan.
 import { readStdinJson, asArray, writeJson, fail } from '../lib/io.mjs';
 import { loadConfig, judgeNode } from '../lib/jev.mjs';
 
 const args = process.argv.slice(2);
-let configPath = null, setName = 'crawl-judge', dryRun = false, maxStateChars = null;
+let configPath = null, setName = 'crawl-judge', dryRun = false, maxStateChars = null, showMetadata = false;
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--config' && args[i + 1]) configPath = args[++i];
   else if (a === '--set' && args[i + 1]) setName = args[++i];
   else if (a === '--max-state-chars' && args[i + 1]) maxStateChars = parseInt(args[++i], 10);
   else if (a === '--dry-run') dryRun = true;
+  else if (a === '--show-metadata') showMetadata = true;
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-judge [--config PATH] [--set NAME] [--max-state-chars N] [--dry-run] < node.json');
+    console.log('usage: crawl-judge [--config PATH] [--set NAME] [--max-state-chars N] [--dry-run] [--show-metadata] < node.json');
+    console.log('  --show-metadata: include providerMetadata (planningReasoning, Jev confidence) in the output.');
+    console.log('    Use it to verify zero-data-retention routing on your plan before sending private code.');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
@@ -62,6 +67,7 @@ for (const node of asArray(input)) {
     const judgment = await judgeNode(node, set, {
       setName, maxStateChars, model: config.model, providerOptions: config.providerOptions,
     });
+    if (!showMetadata) delete judgment.providerMetadata;
     out.push({ node, judgment });
   } catch (e) {
     writeJson({ set: setName, status: set.status || 'active', routing: 'review', error: String(e.message || e).slice(0, 300) });

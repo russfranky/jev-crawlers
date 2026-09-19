@@ -80,6 +80,22 @@ human (4 escalate, 2 file-report); all 6 benign auto-pruned. Source:
 Scope: one author, one fixture, visible bugs. Partially covers U1,
 U2, U5; does not replace them.
 
+**M12. ZDR planning confirmed live on our plan (2026-09-19).** One
+call with `zeroDataRetention: true` returned 200 with
+planningReasoning: "System credentials planned for: typesafe-ai. ZDR
+requested: all 1 attempts support ZDR." Partially covers U8: one
+observation on one key/plan, not a guarantee; Vercel docs still
+describe per-request ZDR as a Pro/Enterprise feature. Operators
+verify on their own plan with `crawl-judge --show-metadata`.
+
+**M13. Jev per-question confidence and real list cost are live fields
+(2026-09-19).** `providerMetadata.typesafe.confidence` returned
+per-question values (e.g. risk 0.98, verdict 0.94); the judge now
+attaches them to answers as `confidence`, labeled vendor-reported and
+uncalibrated per R2. `providerMetadata.gateway.marketCost` returned
+$0.000035 for the call; the judge returns it as `marketCostUsd` and
+the driver prefers it over the M2 estimate.
+
 ## Research-backed
 
 **R1. Jev's I/O contract.** "Jev is a probabilistic decision model for
@@ -197,10 +213,12 @@ behavior, and a reproduction path; it does not execute anything.
 Validate: compare the grounding pass rate against human-confirmed true
 bugs on the labeled set.
 
-**U8. ZDR actually routes for `typesafe-ai/jev` on your plan.**
-Requested via `zeroDataRetention: true`; never verified live. Validate:
-make one call with the flag and inspect `planningReasoning` in the
-response metadata (R4).
+**U8. ZDR actually routes for `typesafe-ai/jev` on your plan
+(partially measured).** Requested via `zeroDataRetention: true`;
+M12 verified planning live on our plan ("all 1 attempts support
+ZDR", 200). One key, one observation: routing can differ by plan,
+so the README still tells every operator to verify with
+`crawl-judge --show-metadata`.
 
 **U9. Parallel judging throughput.** Serial calls are measured (M3);
 parallel calling is untested. Validate: N parallel calls; measure

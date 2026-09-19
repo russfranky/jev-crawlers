@@ -75,15 +75,23 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   one fixture, bugs chosen to be visible. A start, not proof.
   Whether the separation holds on real code is still unvalidated.
   See `docs/ASSUMPTIONS.md`.
-- **Zero data retention is requested, not promised.** The judge config
-  asks the gateway for zero data retention. Per-request ZDR is available
-  only to Pro and Enterprise customers, and a request fails if no
-  ZDR-compliant provider serves the model. Verify routing in
-  `planningReasoning` before you send private code.
+- **Zero data retention is requested and verified on our plan.**
+  The judge config asks the gateway for zero data retention, and a
+  live call on our plan returned planningReasoning: "ZDR requested:
+  all 1 attempts support ZDR" with a 200. One observation, not a
+  guarantee: per-request ZDR is a Pro/Enterprise feature per Vercel's
+  docs, and routing can differ by plan and model. Verify on yours:
+  `./bin/crawl-judge.mjs --show-metadata < node.json` and read
+  `providerMetadata.gateway.routing.planningReasoning` before you
+  send private code.
 - **Jev cannot see images.** States carry text evidence only.
-- **Cost and latency are real.** In our Jev calibration runs we measured
-  about $0.00008 per normal node (headroom above the measured $0.000042
-  on ~1.1k-token states), $0.04 to $0.05 for a 500-node crawl near the
+- **Cost and latency are real.** The gateway reports the real list
+  cost per call in `marketCostUsd`: $0.000035 on a live 2026-09-19
+  judgment, inside the measured $0.000042 band. The driver prefers
+  the reported cost and falls back to the $0.00008 estimate when it
+  is absent. In our Jev calibration runs we measured about $0.00008
+  per normal node (headroom above the measured $0.000042 on
+  ~1.1k-token states), $0.04 to $0.05 for a 500-node crawl near the
   state cap, and up to $0.17 to $0.34 with heavy multi-file context. The
   bands are derived from measured per-call cost and gateway pricing,
   not measured end to end. Serial calls run about 1 second each, so a

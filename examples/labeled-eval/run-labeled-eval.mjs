@@ -87,7 +87,7 @@ const rows = judged.map((j) => {
     bugLikely,
     routing: j.judgment.routing || null,
     latencyMs: j.judgment.latencyMs ?? null,
-    estCost: j.judgment.estCostUsd ?? j.judgment.usage?.estCostUsd ?? null,
+    estCost: j.judgment.marketCostUsd ?? null,
   };
 });
 
