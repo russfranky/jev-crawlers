@@ -478,3 +478,48 @@ health is the result. Recorded as M22. Honest limit: a 34-file,
 not prove the absence of bugs, and the judge's 0 file-reports on this
 run match its measured conservative behavior on real code (M20's
 natural-routing variant).
+
+## 18. False-positive feedback loop: dogfood before/after (2026-09-19)
+
+The owner's ruling: recurring false positives are themselves the
+problem — triage verdicts died in prose docs and never fed back into
+the machine. Built the loop the repo promised ("recursive"):
+
+- `data/fp-verdicts.json`: machine-readable verdict store —
+  `{file, line, pattern, evidence, verdict, reason, date}`. Seeded
+  with the 7 dogfood FPs from §17 (exact matched evidence text) and
+  4 mobhunter probation-run FP classes (evidence: null; per-candidate
+  evidence was not retained, so these feed the judge only).
+- `bin/crawl-seed.mjs`: suppresses a seed only when its (file,
+  pattern, matched evidence text) exactly repeats a
+  `verdict: "false-positive"` entry — never bare file:line, since
+  lines shift. Suppressions log to stderr. Patterns are untouched.
+- `lib/jev.mjs` (`packState`): appends the 10 most recent FP verdicts
+  to the judge state as "previously ruled not-a-bug" negative
+  examples (capped at 2000 chars).
+
+Measured, same command as §17
+(`node bin/crawl.mjs --repo ~/workspace/jev-crawlers --budget 50`,
+real Jev calls):
+
+- before: 21 judgments, 7 candidates (all escalated), $0.00121
+- after, first pass: 13 judgments, 2 candidates — both novel, not
+  repeats. One was the loop eating its own tail (patterns firing on
+  evidence text quoted inside `data/fp-verdicts.json` itself);
+  fixed by excluding the store from pattern seeding. The other was
+  a second fixture-comment line in `bugs.js`; added as a verdict.
+- after, final: **8 judgments, 0 candidates**, $0.00064, wall 9.0 s.
+
+So 7 -> 0 FP candidates on the repeat run; the loop demonstrably
+kills repeats and the two novel FPs it surfaced were absorbed in the
+same session. Total Jev spend for this work: $0.00168.
+
+Mobhunter spot check: the fixed `auth.server.ts` still seeds
+(`pattern:auth` on the fallback-constant line — the real-finding
+signal is intact), game subtree still 937 seeds with
+`pattern:shell` at 0, and all other patterns still fire.
+
+Recorded as M23. Honest limit: this kills *repeat* FPs, not novel
+ones. The judge's negative examples bias it against known classes,
+but a new noise class will still surface as a candidate — which is
+the loop's input, not its failure.

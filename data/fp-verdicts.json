@@ -1,0 +1,110 @@
+[
+  {
+    "file": "examples/labeled-eval/bugs.js",
+    "line": 21,
+    "pattern": "pattern:dynamic-code",
+    "evidence": "return eval(userExpr);",
+    "verdict": "false-positive",
+    "reason": "Intentional seeded bug in the labeled-eval fixture (BUG fixture), not product code.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "questions/crawl-judge.json",
+    "line": 1,
+    "pattern": "pattern:auth",
+    "evidence": "{\"_predicate_dsl\": \"Policy routes are evaluated in order; the first route whose `when` predicates all pass wins. An empty `when` always matches (use last as the default). Predicate ops: gte, lte, gt, ",
+    "verdict": "false-positive",
+    "reason": "Self-referential noise: auth pattern fired on the judge config's own instructions prose (\"auth weakness\"/\"auth bypass\").",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "docs/ASSUMPTIONS.md",
+    "line": 37,
+    "pattern": "pattern:money",
+    "evidence": "detection. Transfer to per-node code risk is UNVALIDATED (U1).",
+    "verdict": "false-positive",
+    "reason": "Documentation prose, not code: money pattern fired on the English word \"Transfer\".",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "examples/cost-eval/run-cost-eval.mjs",
+    "line": 84,
+    "pattern": "pattern:auth",
+    "evidence": "console.error(`nodes after secret scan: ${nodes.length} (dropped ${secretDropped} with secret-shaped values)`);",
+    "verdict": "false-positive",
+    "reason": "A secret-scan log message (\"secret-shaped values\"), not a secret.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "examples/labeled-eval/results-2026-09-19.json",
+    "line": 75,
+    "pattern": "pattern:auth",
+    "evidence": "\"bugType\": \"hardcoded-secret\",",
+    "verdict": "false-positive",
+    "reason": "Fixture results file: \"bugType\": \"hardcoded-secret\" is a label, not a committed secret.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "examples/labeled-eval/run-labeled-eval.mjs",
+    "line": 20,
+    "pattern": "pattern:auth",
+    "evidence": "'bugs.js::STRIPE_KEY': { label: 'bug', bugType: 'hardcoded-secret' },",
+    "verdict": "false-positive",
+    "reason": "Fixture label map mentioning STRIPE_KEY; a test label, not a real credential.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "examples/todo-app/checkout.js",
+    "line": 8,
+    "pattern": "todo",
+    "evidence": "const amount = total(cart); // TODO: round to cents before charging",
+    "verdict": "false-positive",
+    "reason": "TODO comment in a fixture (\"round to cents before charging\"), not a live defect.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": null,
+    "line": 0,
+    "pattern": "pattern:shell",
+    "evidence": null,
+    "verdict": "false-positive",
+    "reason": "Luau task.spawn is a coroutine scheduler, not shell execution; 8 probation candidates were this class. Pattern fixed in M21 so it no longer fires.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": null,
+    "line": 0,
+    "pattern": "pattern:auth",
+    "evidence": null,
+    "verdict": "false-positive",
+    "reason": "Item display names containing \"Token\" (\"Revival Token\", \"Wayfarer's Token\") are product vocabulary, not auth secrets.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": null,
+    "line": 0,
+    "pattern": "pattern:auth-token",
+    "evidence": null,
+    "verdict": "false-positive",
+    "reason": "TradeService countdownToken is an anti-stale timer mechanism, not an auth credential.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "mobhunter/website/app/utils/theme.server.ts",
+    "line": 0,
+    "pattern": "pattern:auth",
+    "evidence": null,
+    "verdict": "false-positive",
+    "reason": "theme.server.ts DEFAULT_SECRET signs only a UI-preference (theme) cookie; forging it gains an attacker nothing.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "examples/labeled-eval/bugs.js",
+    "line": 24,
+    "pattern": "pattern:auth",
+    "evidence": "// BUG-4 hardcoded secret: live key committed to source.",
+    "verdict": "false-positive",
+    "reason": "Fixture comment describing the labeled-eval fixture bug, not a live credential.",
+    "date": "2026-09-19"
+  }
+]

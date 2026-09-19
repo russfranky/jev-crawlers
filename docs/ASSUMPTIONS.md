@@ -418,3 +418,12 @@ uncertain ones to review"). Auto-prune requires converging evidence:
 the judge chose prune, the risk band is low, and the boolean shows
 support for false (R3: near zero means support for false). Probabilities
 are labeled ranking signals in every CLI output (R2).
+
+**M23. FP verdicts feed back into the machine (measured
+2026-09-19).** `data/fp-verdicts.json` holds human false-positive
+verdicts; the seeder suppresses exact (file, pattern, matched-text)
+repeats (logged to stderr) and the judge gets the 10 most recent as
+negative examples. Dogfood re-run: 7 -> 0 FP candidates; the fixed
+SESSION_SECRET finding still seeds. Limit: repeats are killed, novel
+FPs are not — new noise classes still surface as candidates, which is
+the loop's input.

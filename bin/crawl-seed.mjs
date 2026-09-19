@@ -4,6 +4,7 @@
 // --patterns (risky code patterns: auth, money, eval, dynamic require).
 // Output: JSON array of nodes. Pipes into crawl-expand or crawl.
 import path from 'node:path';
+import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { asArray, writeJson, readFileSafe, fail } from '../lib/io.mjs';
 import { withId } from '../lib/graph.mjs';
@@ -123,6 +124,10 @@ if (seeds.includes('patterns')) {
   ];
   for (const [name, re, prio] of patterns) {
     for (const hit of grepRegex(repo, re, isIgnored)) {
+      // The FP verdict store quotes matched evidence text verbatim; seeding
+      // it would re-fire patterns on the quotes (self-referential noise).
+      // It is machine data, not code under audit.
+      if (hit.file === 'data/fp-verdicts.json') continue;
       addNode(hit.file, '?', hit.scope, `pattern:${name}`,
         [ev('code', hit.file, hit.line, hit.text),
          ev('pattern', hit.file, hit.line, `risky pattern fired: ${name}`, { pattern: name })],
@@ -131,4 +136,29 @@ if (seeds.includes('patterns')) {
   }
 }
 
-writeJson(nodes);
+// False-positive feedback loop. Human verdicts live in
+// data/fp-verdicts.json: {file, line, pattern, evidence, verdict, reason,
+// date}. A seed is suppressed only when its (file, pattern, matched evidence
+// text) exactly repeats a verdict:false-positive entry — never by bare
+// file:line, since lines shift. Class-level entries (evidence: null) never
+// suppress; they exist for the judge's negative examples. Suppressions are
+// logged to stderr so runs stay auditable. This does not weaken patterns.
+function loadFpVerdicts() {
+  try {
+    const p = path.join(new URL(import.meta.url).pathname, '..', '..', 'data', 'fp-verdicts.json');
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch { return []; }
+}
+const fpVerdicts = loadFpVerdicts().filter(v => v && v.verdict === 'false-positive' && v.evidence);
+function isFpRepeat(node) {
+  const codeTexts = (node.evidence || []).filter(e => e && e.kind === 'code').map(e => e.text);
+  return fpVerdicts.find(v =>
+    v.file === node.file && v.pattern === (node.seed && node.seed.type) &&
+    codeTexts.some(t => t === v.evidence || t.includes(v.evidence)));
+}
+
+writeJson(nodes.filter(n => {
+  const v = isFpRepeat(n);
+  if (v) console.error(`fp-verdict: suppressed ${n.file} [${n.seed.type}] (verdict ${v.date})`);
+  return !v;
+}));
