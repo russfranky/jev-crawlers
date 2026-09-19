@@ -98,15 +98,16 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   files are excluded from reading. Scan for secret-shaped values before
   crawling private code, and verify ZDR routing on your plan (see above).
 - **Verification v0 checks grounding, not execution.** The verifier
-  confirms the artifact names real code and states an input, a wrong
-  behavior, and a reproduction path. It does not run the reproducer.
-  Measured 2026-09-19 (M18): on 6 human-confirmed bugs with real
-  pipeline evidence, the verifier demoted all 6 to unverified leads —
-  its grounding vocabulary does not match what the seeders emit, so
-  the "verified bug" status is currently unreachable on real pipeline
-  output. Findings say "artifact attached, reproducer not executed",
-  and every file-report stays an unverified lead until the pipeline
-  emits evidence the verifier accepts.
+  confirms the artifact names real code on disk. It does not run the
+  reproducer. Measured 2026-09-19 (M20, supersedes M18): on 6
+  human-confirmed bugs with the full production chain (driver attaches
+  the node's own cited code locations before verification), the
+  verifier accepted 6/6 bugs and 0/6 benign cases (precision 1.00,
+  recall 1.00). With the judge's natural routing, 2/6 bugs are
+  accepted as bugs and 4/6 escalate to a human. Scope: n=12 on a
+  synthetic fixture; the check is falsifiability-grounding, not
+  independent bug derivation. Findings say "artifact attached,
+  reproducer not executed".
 - **The question set is proposed and uncalibrated.** All thresholds
   (risk bands at 1 and 2, the prune rule, the diminishing-returns gate)
   are reasoned, not measured. Tune them only after measuring precision

@@ -30,77 +30,77 @@
     {
       "variant": "V-attached x R-forced (primary)",
       "n": 12,
-      "acceptedBugs": 0,
+      "acceptedBugs": 6,
       "acceptedBenign": 0,
-      "demotedBugs": 6,
+      "demotedBugs": 0,
       "demotedBenign": 6,
       "escalatedOrSkipped": 0,
-      "precision": null,
-      "recall": 0,
+      "precision": 1,
+      "recall": 1,
       "rows": [
         {
           "id": "bugs.js::totalBroken",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 2.55,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "risk": 2.39,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
         },
         {
           "id": "bugs.js::zipOf",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 1.63,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "risk": 1.64,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
         },
         {
           "id": "bugs.js::applyDiscount",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 2.8,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger"
+          "risk": 2.89,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 4 on-disk code location(s); reproducer not executed (v0)"
         },
         {
           "id": "bugs.js::STRIPE_KEY",
           "truth": "bug",
           "routingIn": "file-report",
           "risk": 2.94,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
         },
         {
           "id": "bugs.js::parseQty",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 1.5,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "risk": 1.47,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
         },
         {
           "id": "bugs.js::chargeAmount",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 2.3,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "risk": 2.34,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
         },
         {
           "id": "benign.js::clamp",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.11,
+          "risk": 0.09,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.11 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.09 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.04, ranking signal)"
         },
         {
           "id": "benign.js::newCart",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.03,
+          "risk": 0.04,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.03 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.04 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::zipOfSafe",
@@ -108,36 +108,97 @@
           "routingIn": "file-report",
           "risk": 0.06,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::addItemSafe",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.1,
+          "risk": 0.07,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.1 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::totalFixed",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.44,
+          "risk": 0.45,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.44 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.45 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::VERSION",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.07,
+          "risk": 0.06,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         }
       ]
     },
     {
-      "variant": "V-strict x R-forced (as-shipped pipeline)",
+      "variant": "V-attached x R-natural (production routing)",
+      "n": 6,
+      "acceptedBugs": 2,
+      "acceptedBenign": 0,
+      "demotedBugs": 0,
+      "demotedBenign": 0,
+      "escalatedOrSkipped": 4,
+      "precision": 1,
+      "recall": 0.333,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.39,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.64,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.89,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.94,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.47,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.34,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        }
+      ]
+    },
+    {
+      "variant": "V-stripped x R-forced (control)",
       "n": 12,
       "acceptedBugs": 0,
       "acceptedBenign": 0,
@@ -151,25 +212,25 @@
           "id": "bugs.js::totalBroken",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 2.55,
+          "risk": 2.39,
           "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: evidence cites no code location (file:line)"
         },
         {
           "id": "bugs.js::zipOf",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 1.63,
+          "risk": 1.64,
           "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: evidence cites no code location (file:line)"
         },
         {
           "id": "bugs.js::applyDiscount",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 2.8,
+          "risk": 2.89,
           "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.09, ranking signal)"
         },
         {
           "id": "bugs.js::STRIPE_KEY",
@@ -177,39 +238,39 @@
           "routingIn": "file-report",
           "risk": 2.94,
           "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.23, ranking signal)"
         },
         {
           "id": "bugs.js::parseQty",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 1.5,
+          "risk": 1.47,
           "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.2, ranking signal)"
         },
         {
           "id": "bugs.js::chargeAmount",
           "truth": "bug",
           "routingIn": "file-report",
-          "risk": 2.3,
+          "risk": 2.34,
           "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.19, ranking signal)"
         },
         {
           "id": "benign.js::clamp",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.11,
+          "risk": 0.09,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.11 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.09 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.04, ranking signal)"
         },
         {
           "id": "benign.js::newCart",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.03,
+          "risk": 0.04,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.03 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.04 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::zipOfSafe",
@@ -217,92 +278,31 @@
           "routingIn": "file-report",
           "risk": 0.06,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::addItemSafe",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.1,
+          "risk": 0.07,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.1 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::totalFixed",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.44,
+          "risk": 0.45,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.44 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
+          "note": "demoted: risk score 0.45 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         },
         {
           "id": "benign.js::VERSION",
           "truth": "benign",
           "routingIn": "file-report",
-          "risk": 0.07,
+          "risk": 0.06,
           "status": "unverified-lead",
-          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); evidence does not name an input or trigger; evidence does not name the wrong behavior"
-        }
-      ]
-    },
-    {
-      "variant": "V-attached x R-natural (production routing)",
-      "n": 6,
-      "acceptedBugs": 0,
-      "acceptedBenign": 0,
-      "demotedBugs": 2,
-      "demotedBenign": 0,
-      "escalatedOrSkipped": 4,
-      "precision": null,
-      "recall": 0,
-      "rows": [
-        {
-          "id": "bugs.js::totalBroken",
-          "truth": "bug",
-          "routingIn": "escalate-owner",
-          "risk": 2.55,
-          "status": "escalated",
-          "note": "serious blast radius or ambiguous evidence; human decides"
-        },
-        {
-          "id": "bugs.js::zipOf",
-          "truth": "bug",
-          "routingIn": "file-report",
-          "risk": 1.63,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
-        },
-        {
-          "id": "bugs.js::applyDiscount",
-          "truth": "bug",
-          "routingIn": "escalate-owner",
-          "risk": 2.8,
-          "status": "escalated",
-          "note": "serious blast radius or ambiguous evidence; human decides"
-        },
-        {
-          "id": "bugs.js::STRIPE_KEY",
-          "truth": "bug",
-          "routingIn": "escalate-owner",
-          "risk": 2.94,
-          "status": "escalated",
-          "note": "serious blast radius or ambiguous evidence; human decides"
-        },
-        {
-          "id": "bugs.js::parseQty",
-          "truth": "bug",
-          "routingIn": "file-report",
-          "risk": 1.5,
-          "status": "unverified-lead",
-          "note": "demoted: evidence does not name an input or trigger; evidence does not name the wrong behavior"
-        },
-        {
-          "id": "bugs.js::chargeAmount",
-          "truth": "bug",
-          "routingIn": "escalate-owner",
-          "risk": 2.3,
-          "status": "escalated",
-          "note": "serious blast radius or ambiguous evidence; human decides"
+          "note": "demoted: risk score 0.06 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
         }
       ]
     }

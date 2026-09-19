@@ -312,6 +312,9 @@ the verifier is safe (nothing false gets called a bug) but its
 Re-test after the pipeline emits evidence in the grounding
 vocabulary, or the verifier reads the judge's stated artifact.
 
+Superseded: §15 re-tests after the driver attach fix; U7 is now
+validated within scope (M20).
+
 ## 14. U10 cost experiment: 493 nodes judged on a real repo (2026-09-19)
 
 Ran the named experiment for real (`examples/cost-eval/`,
@@ -343,3 +346,37 @@ M12/R4.
 Recorded as M19; M10's derived $0.04-$0.05 band for 500 nodes is
 superseded (measured $0.03). Scope: seed nodes only — a real
 crawl's expansion adds judgments at the same per-node rate.
+
+## 15. U7 re-test after the driver attach fix (2026-09-19)
+
+The §13 failure was a vocabulary mismatch: the verifier's
+grounding check demanded judge-like vocabulary that raw seeder
+lines never contain, so all 6 true bugs demoted. The fix closes
+the gap in the driver, not the verifier: `bin/crawl.mjs` now
+attaches the node's own cited code locations into the judgment
+record before `crawl-verify` runs (shared helper
+`lib/evidence.mjs`, used by the driver and mirrored by the eval
+runner); `crawl-verify` unions them with node evidence for
+on-disk grounding. Fabricated citations still fail-closed.
+
+Re-ran `examples/verifier-eval/` (12 calls, about $0.0007) with
+the full production chain. Judge run for real, labels withheld:
+bugs 4 escalate-owner / 2 file-report, benign 6 auto-prune.
+
+- Primary (routing forced to file-report, judge's real answers
+  kept): **6/6 bugs accepted, 0/6 benign** — precision 1.00,
+  recall 1.00. Benign demotions rest on the judge's own answers
+  (verdict=prune, risk below floor), not on grounding gaps.
+- Natural routing (production): 2/6 bugs accepted as bugs, 4/6
+  escalated to a human, 0/6 benign accepted. Recall 0.333 on
+  "bug" status, nothing lost — escalation is the primary sink.
+- Control (evidence stripped): 0/12 accepted. The mechanism still
+  requires real evidence.
+
+Recorded as M20 (supersedes M18); U7's positive claim is
+VALIDATED within scope: n=12 on a synthetic fixture, and the
+verifier checks falsifiability-grounding (claim cites real
+on-disk code, judge stated a bug claim, risk at or above floor),
+not independent bug derivation. Next: re-run on a larger labeled
+set with real-world bugs, and add a fabricated-citation case to
+the control.

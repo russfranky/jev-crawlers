@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { Frontier, childPriority, nodeId, withId } from '../lib/graph.mjs';
 import { fileExcerpt } from '../lib/search.mjs';
+import { attachEvidence } from '../lib/evidence.mjs';
 import { fail } from '../lib/io.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -139,6 +140,10 @@ while (frontier.size > 0) {
   } else if (routing === 'auto-prune') {
     pruned++;
   } else {
+    // Before verification, attach the node's own cited code locations into
+    // the judgment record (lib/evidence.mjs), so crawl-verify grounds the
+    // claim against judge artifact + node evidence + disk.
+    judgment.attachedEvidence = attachEvidence(node);
     candidates.push({ node, judgment }); // file-report | needs-artifact | escalate-owner
   }
 

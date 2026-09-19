@@ -10,16 +10,18 @@
 // Design (verifier isolation):
 //   - The judge runs for real on all 12 nodes (labels withheld).
 //   - The verifier is deterministic (no Jev calls), so every variant is free.
-//   - Primary measurement (V-attached x R-forced): every node carries the
-//     real seeder evidence in node.evidence (best case: the pipeline attached
-//     everything it has), and routing is forced to file-report while keeping
-//     the judge's REAL answers. This isolates the verifier: given a bug
-//     claim with everything the pipeline knows, does its grounded/demoted
-//     decision track ground truth?
-//   - Secondary: V-strict (evidence: [], exactly what seed nodes carry in
-//     the shipped pipeline) x R-forced — what the real pipeline feeds it.
+//   - Primary measurement (V-attached x R-forced): the full production
+//     chain — every node carries the seeder's real structured evidence
+//     items verbatim, the driver's attach step (bin/crawl.mjs, via
+//     lib/evidence.mjs) attaches the node's own cited code locations into
+//     the judgment record, and routing is forced to file-report while
+//     keeping the judge's REAL answers. This isolates the verifier: given
+//     a bug claim with everything the pipeline knows, does its
+//     grounded/demoted decision track ground truth?
 //   - Context: R-natural (the judge's real routing; non-file-report nodes
 //     are escalated or skipped by crawl-verify, as in production).
+//   - Control: V-stripped x R-forced (evidence removed; the verifier must
+//     demote everything, proving it requires real evidence).
 //
 // Metrics: verifier precision = accepted bugs / all accepted;
 //          verifier recall   = accepted bugs / 6 true bugs.
@@ -31,6 +33,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { attachEvidence } from '../../lib/evidence.mjs';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(DIR, '..', '..');
@@ -64,72 +67,53 @@ function symbolsOf(file) {
   return { src, syms };
 }
 
-// Real seeder evidence: run the shipped crawl-seed on the fixture.
+// Real seeder evidence: run the shipped crawl-seed on the fixture and use
+// its structured evidence items verbatim (byte-identical by construction).
 const seedRes = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-seed.mjs'),
   '--repo', FIXTURE, '--patterns', '--todo'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 if (seedRes.status !== 0) { console.error('crawl-seed failed:', seedRes.stderr?.slice(0, 1000)); process.exit(1); }
 const seeds = JSON.parse(seedRes.stdout);
 console.error(`real seeder fired ${seeds.length} seeds on the fixture`);
 
-// Build per-symbol nodes; attach real seeder evidence by line range.
+// Build per-symbol nodes; attach the seeder's real structured evidence
+// items whose file:line falls inside the symbol's line range. Item files
+// are rewritten to repo-relative paths so the verifier's on-disk check
+// resolves them.
 const nodes = [];
 for (const file of ['bugs.js', 'benign.js']) {
   const { src, syms } = symbolsOf(file);
   for (const { symbol, start, end } of syms) {
     const id = `${file}::${symbol}`;
     if (!LABELS[id]) continue;
-    const ev = [];
-    let seedType = 'labeled-eval', seedEv = 'node from labeled eval fixture; assess on the code alone';
+    const items = [];
+    let seedType = null, seedEv = null;
+    for (const s of seeds) {
+      if (s.file !== file) continue;
+      for (const it of (s.evidence || [])) {
+        if (it.line >= start && it.line <= end) {
+          items.push({ ...it, file: `examples/labeled-eval/${file}` });
+          if (!seedType) { seedType = s.seed.type; seedEv = s.seed.evidence; }
+        }
+      }
+    }
     nodes.push({ id, file: `examples/labeled-eval/${file}`, symbol, scope: '<file>',
       kind: 'eval', depth: 0, symbolLine: start, excerpt: src,
-      seed: { type: seedType, evidence: seedEv }, evidence: ev, _range: [start, end] });
+      seed: { type: seedType || 'labeled-eval', evidence: seedEv || 'node from labeled eval fixture; assess on the code alone' },
+      evidence: items });
   }
-}
-
-// Map seeder hits to symbols: re-run grep per symbol region using the same
-// patterns crawl-seed uses, so the evidence strings are identical.
-const PATTERNS = [
-  ['pattern:auth', /\b(password|secret|token|api[_-]?key|auth|credential)\b/i],
-  ['pattern:money', /\b(charge|payment|invoice|refund|payout|balance|transfer)\b/i],
-  ['pattern:dynamic-code', /\beval\s*\(|new\s+Function\s*\(/],
-  ['pattern:dynamic-require', /\brequire\s*\(\s*[^)'"]/],
-  ['pattern:shell', /\bexec\s*\(|spawn\s*\(|system\s*\(/],
-  ['pattern:raw-html', /\.innerHTML\s*=/],
-  ['todo', /\b(TODO|FIXME|XXX|HACK)\b/],
-];
-for (const n of nodes) {
-  const src = fs.readFileSync(path.join(FIXTURE, path.basename(n.file)), 'utf8');
-  const lines = src.split('\n');
-  const [lo, hi] = n._range;
-  for (const [type, re] of PATTERNS) {
-    for (let i = lo - 1; i < hi && i < lines.length; i++) {
-      if (!re.test(lines[i])) continue;
-      const text = lines[i].trim().slice(0, 200);
-      // Evidence strings byte-identical to crawl-seed: patterns emit the raw
-      // hit line; todo emits "MARKER: text-after-marker".
-      let evText = text;
-      if (type === 'todo') {
-        const m = text.match(/\b(TODO|FIXME|XXX|HACK)\b\s*:?\s*(.{0,120})/);
-        evText = `${m ? m[1] : 'TODO'}: ${m ? m[2] : text}`;
-      }
-      n.evidence.push(`${type}: ${evText}`);
-      if (n.seed.type === 'labeled-eval') { n.seed = { type, evidence: evText.slice(0, 400) }; }
-    }
-  }
-  delete n._range;
 }
 const withEv = nodes.filter((n) => n.evidence.length).length;
 console.error(`nodes with real seeder evidence attached: ${withEv}/${nodes.length}`);
 
 // Judge all 12 for real (labels withheld from the judge).
 const judgeRes = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-judge.mjs')],
-  { input: JSON.stringify(nodes.map(({ _range, ...r }) => r)), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+  { input: JSON.stringify(nodes), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 if (judgeRes.status !== 0) { console.error('judge failed:', judgeRes.stderr?.slice(0, 2000)); process.exit(1); }
 const judged = JSON.parse(judgeRes.stdout);
 console.error(`judged ${judged.length} nodes`);
 
 function runVerify(pairs) {
-  const res = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-verify.mjs')],
+  const res = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-verify.mjs'), '--repo', ROOT],
     { input: JSON.stringify(pairs), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (res.status !== 0) { console.error('verify failed:', res.stderr?.slice(0, 1000)); process.exit(1); }
   return JSON.parse(res.stdout);
@@ -162,23 +146,43 @@ function metrics(findings, name) {
   };
 }
 
-// Variant A (primary, verifier isolation): real seeder evidence attached,
-// routing forced to file-report, judge's real answers kept.
-const forcedA = judged.map(({ node, judgment }) => ({
-  node, judgment: { ...judgment, routing: 'file-report' },
-}));
+// Mirror the driver's attach step (bin/crawl.mjs): before verification,
+// the driver attaches the node's own cited code locations
+// (lib/evidence.mjs) into the judgment record, so the verifier grounds
+// against judge artifact + node evidence + disk.
+function withAttached(node, judgment) {
+  const j = { ...judgment };
+  j.attachedEvidence = attachEvidence(node);
+  return { node, judgment: j };
+}
+
+// Variant A (primary, verifier isolation): the full production chain —
+// real seeder evidence on the node, the driver's attach step on the
+// judgment, routing forced to file-report while keeping the judge's REAL
+// answers. This isolates the verifier: given a bug claim with everything
+// the pipeline knows, does its grounded/demoted decision track truth?
+const forcedA = judged.map(({ node, judgment }) => {
+  const p = withAttached(node, judgment);
+  p.judgment.routing = 'file-report';
+  return p;
+});
 const mA = metrics(runVerify(forcedA), 'V-attached x R-forced (primary)');
 
-// Variant B: strict pipeline — seeds carry evidence: [] as shipped.
-const forcedB = judged.map(({ node, judgment }) => ({
-  node: { ...node, evidence: [] },
-  judgment: { ...judgment, routing: 'file-report' },
-}));
-const mB = metrics(runVerify(forcedB), 'V-strict x R-forced (as-shipped pipeline)');
-
-// Variant C (context): the judge's real routing, as production would run it.
-const mC = metrics(runVerify(judged.map(({ node, judgment }) => ({ node, judgment }))),
+// Variant B (context): the judge's real routing, as production would run it.
+const mB = metrics(runVerify(judged.map(({ node, judgment }) => withAttached(node, judgment))),
   'V-attached x R-natural (production routing)');
+
+// Variant C (control): evidence stripped. The fixed verifier must demote
+// everything here — it proves the verifier now requires real evidence,
+// the exact failure mode of the old pipeline.
+const forcedC = judged.map(({ node, judgment }) => {
+  const p = withAttached(
+    { ...node, evidence: [], symbolLine: 0, seed: { type: 'none', evidence: '' } },
+    judgment);
+  p.judgment.routing = 'file-report';
+  return p;
+});
+const mC = metrics(runVerify(forcedC), 'V-stripped x R-forced (control)');
 
 const summary = {
   date: new Date().toISOString().slice(0, 10),

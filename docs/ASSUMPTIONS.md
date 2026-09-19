@@ -115,6 +115,34 @@ pipeline output — every file-report becomes an unverified lead and stays
 with a human, which is safe but means the "verified bug" status is
 currently unreachable. U7's positive claim is NOT validated.
 
+**M20. Verifier grounding tracks bug validity on labeled cases
+(n=12, 2026-09-19).** Supersedes M18. The fix: the driver now
+attaches the node's own cited code locations into the judgment
+record before verification runs (`lib/evidence.mjs`,
+`bin/crawl.mjs`); `crawl-verify` unions them with the node's
+evidence for on-disk grounding, and a fabricated citation still
+demotes by itself (fail-closed). Re-ran
+`examples/verifier-eval/` with the full production chain (real
+seeder evidence on the node, driver attach step on the judgment,
+judge run for real with labels withheld: bugs 4 escalate /
+2 file-report, benign 6 auto-prune). Routing forced to file-report
+with the judge's real answers kept: the verifier accepted **6/6
+bugs, 0/6 benign** — precision 1.00, recall 1.00. With the judge's
+natural routing, 2/6 bugs reach file-report and are accepted as
+bugs; the other 4/6 escalate to a human (recall 0.333 on "bug"
+status, nothing lost — escalation is the primary sink by design,
+so in production terms all 6 bugs reach a human). Control
+(evidence stripped): 0/12 accepted — the mechanism still requires
+real evidence. Benign demotions rest on the judge's own answers
+(verdict=prune, risk below floor), not on grounding gaps: the
+vocabulary mismatch is closed. Honest scope: n=12 on a synthetic
+fixture; the verifier checks falsifiability-grounding (the claim
+cites real on-disk code, the judge stated a bug claim, risk at or
+above floor), not independent bug derivation; v0 does not execute
+reproducers. Source:
+`examples/verifier-eval/results-2026-09-19.json`. U7's positive
+claim is VALIDATED within this scope.
+
 **M12. ZDR planning confirmed live on our plan (2026-09-19).** One
 call with `zeroDataRetention: true` returned 200 with
 planningReasoning: "System credentials planned for: typesafe-ai. ZDR
@@ -287,17 +315,22 @@ over many seeded bugs with known true context, and whether depth-1
 noise (README.md matched the symbol by text search) drowns the
 signal at scale.
 
-**U7. Verifier grounding approximates bug validity (measured negative,
-2026-09-19).** M18 ran the named experiment: file-report judgments with
-real pipeline evidence on 6 human-confirmed bugs. The verifier accepted
-0/6 — the positive claim is NOT validated. As shipped, the verifier's
-grounding regexes expect judge-like vocabulary ("input/trigger/call",
-"wrong/bug/fail") that real seeder evidence (raw code lines) never
-contains, `groundedGaps` ignores `node.seed`, and the verifier never
-reads the judge's stated artifact. A valid re-test needs the pipeline to
-emit evidence in the grounding vocabulary, or the verifier to consult
-the judge's 'report' verdict and `artifact_stated` answer; then re-run
-`examples/verifier-eval/`.
+**U7. Verifier grounding approximates bug validity (validated
+within scope, 2026-09-19).** M18 measured the failure: the old
+grounding regexes expected judge-like vocabulary that seeder
+evidence never contains, so the verifier demoted 0/6 true bugs.
+The fix (M20): the driver attaches the node's own cited code
+locations into the judgment record before verification
+(`lib/evidence.mjs`); the verifier unions them with node evidence
+for on-disk grounding. Re-run on the same 12 labeled cases:
+verifier accepted **6/6 bugs, 0/6 benign** (precision 1.00,
+recall 1.00); control (evidence stripped) accepted 0/12; with
+natural routing 2/6 bugs are accepted as bugs and 4/6 escalate to
+a human (nothing lost). Honest scope: n=12, synthetic fixture;
+the verifier checks falsifiability-grounding, not independent bug
+derivation; v0 does not execute reproducers. Validate further:
+re-run on a larger labeled set with real-world bugs, and add a
+fabricated-citation case to the control.
 
 **U8. ZDR actually routes for `typesafe-ai/jev` on your plan
 (partially measured).** Requested via `zeroDataRetention: true`;

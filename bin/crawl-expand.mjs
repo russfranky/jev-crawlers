@@ -33,20 +33,24 @@ const seen = new Set(); // batch-level dedupe on canonical identity
 for (const node of asArray(input)) {
   const depth = (node.depth ?? 0) + 1;
 
-  const emit = (file, symbol, scope, relation, evidence, priority) => {
+  const emit = (file, symbol, scope, relation, evidence, priority, codeLine, line) => {
     if (!file || isIgnored(file) || file === node.file && symbol === node.symbol && scope === node.scope) return;
     if (children.length >= maxChildren * asArray(input).length) return;
     const id = `${file}::${scope || '<file>'}::${symbol || '?'}`;
     if (seen.has(id)) return;
     seen.add(id);
     const { excerpt, symbolLine } = fileExcerpt(repo, file, 1, 30);
+    // Structured evidence: the relation as context, plus the concrete code
+    // line when the expansion knows it (symbol-refs hits carry file:line).
+    const items = [{ kind: 'context', file, line: line || 0, text: `${relation}: ${evidence}`.slice(0, 300) }];
+    if (line && codeLine) items.unshift({ kind: 'code', file, line, text: String(codeLine).slice(0, 200) });
     children.push(withId({
       file, symbol: symbol || '?', scope: scope || '<file>',
       kind: 'expanded', depth, priority,
       parent: node.id, relation,
       excerpt, symbolLine,
       seed: node.seed,
-      evidence: [`${relation}: ${evidence}`.slice(0, 300)],
+      evidence: items,
     }));
   };
 
@@ -56,7 +60,7 @@ for (const node of asArray(input)) {
       if (hit.file === node.file) continue;
       const text = readFileSafe(path.join(repo, hit.file)) || '';
       emit(hit.file, node.symbol, hit.scope || enclosingScope(text, hit.line),
-        'symbol-refs', `${node.symbol} referenced at ${hit.file}:${hit.line}: ${hit.text}`, 0.8);
+        'symbol-refs', `${node.symbol} referenced at ${hit.file}:${hit.line}`, 0.8, hit.text, hit.line);
     }
   }
 

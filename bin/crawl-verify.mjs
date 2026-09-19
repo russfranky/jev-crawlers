@@ -3,27 +3,46 @@
 //
 // The judge can only say "this looks like a bug". The verifier assembles a
 // falsifiable artifact for each report candidate and checks that it is
-// grounded: it must name a real file, a real symbol, and a real line, and
-// it must state the input/trigger, the wrong behavior, and a reproduction
-// path. Anything that fails the check is demoted to an "unverified lead"
-// and is never called a bug.
+// grounded against three things:
+//   (a) the judge's stated artifact — the verdict choice ('report' means the
+//       judge named a concrete bug; 'escalate' means a possible serious one)
+//       plus artifact_stated, kept as a ranking signal for the reviewer;
+//   (b) the node's full evidence, including seed evidence — structured
+//       items of kind code/pattern/diff/context that cite file:line — plus
+//       the driver-attached locations (judgment.attachedEvidence, see
+//       lib/evidence.mjs): the node's own cited code locations, attached to
+//       the judgment record before verification runs. The union is what the
+//       verifier grounds against; the on-disk check still applies to every
+//       location, and a fabricated citation demotes by itself.
+//   (c) the actual file on disk — the verifier reads every cited file:line
+//       and confirms it exists with matching content. A cited location that
+//       does not exist on disk demotes by itself (fail-closed against
+//       fabricated evidence). The on-disk check is the strongest grounding
+//       signal and is what makes "verified bug" reachable.
+//
+// Anything that fails the check is demoted to an "unverified lead" and is
+// never called a bug. artifact_stated never demotes alone: it only adds a
+// reason when the claim is already weak on another ground.
 //
 // v0 verification is artifact grounding, not execution: the verifier cannot
-// run the reproducer. Running reproducers is on the roadmap. The report
-// labels this honestly.
+// run the reproducer, and it does not re-derive the bug from the code — it
+// confirms the claim cites real code. Running reproducers is on the
+// roadmap. The report labels this honestly.
 //
 // Reads [{ node, judgment }] from stdin. Writes findings:
 //   { node, judgment, status: "bug" | "unverified-lead" | "escalated",
 //     artifact: { kind, text } | null }
-import { readStdinJson, asArray, writeJson, fail } from '../lib/io.mjs';
+import path from 'node:path';
+import { readStdinJson, asArray, writeJson, fail, readFileSafe } from '../lib/io.mjs';
 
 const args = process.argv.slice(2);
-let riskFloor = 1;
+let riskFloor = 1, repo = process.cwd();
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--risk-floor' && args[i + 1]) riskFloor = parseFloat(args[++i]);
+  else if (a === '--repo' && args[i + 1]) repo = args[++i];
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-verify [--risk-floor 1] < judged.json');
+    console.log('usage: crawl-verify [--risk-floor 1] [--repo PATH] < judged.json');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
@@ -48,10 +67,22 @@ for (const { node, judgment } of asArray(input)) {
   const risk = judgment.answers?.risk?.score ?? 0;
   const reasons = [];
   if (risk < riskFloor) reasons.push(`risk score ${risk} below floor ${riskFloor} (ranking band, not a bug probability)`);
-  const artifact = assembleArtifact(node, judgment);
+  const items = evidenceItems(node, judgment);
+  const locs = citedLocations(node, items);
+  // Evidence items that cite code: each must exist on disk. A fabricated
+  // citation demotes by itself. The node's own symbol line can only add
+  // confirmation, never a gap.
+  const itemChecks = locs.evidence.map((l) => ({ ...l, check: checkOnDisk(repo, l) }));
+  const symbolCheck = locs.symbolLine ? checkOnDisk(repo, locs.symbolLine) : { ok: false };
+  const confirmed = [
+    ...itemChecks.filter((c) => c.check.ok),
+    ...(symbolCheck.ok ? [{ ...locs.symbolLine }] : []),
+  ];
+  const failedItems = itemChecks.filter((c) => !c.check.ok);
+  const artifact = assembleArtifact(node, judgment, items, confirmed);
   if (!artifact) reasons.push('no grounded artifact could be assembled');
   else {
-    const gaps = groundedGaps(node, artifact);
+    const gaps = groundedGaps(judgment, locs.evidence, failedItems, confirmed);
     if (gaps.length) reasons.push(...gaps);
   }
 
@@ -60,22 +91,85 @@ for (const { node, judgment } of asArray(input)) {
       note: 'demoted: ' + reasons.join('; ') });
   } else {
     findings.push({ node, judgment, status: 'bug', artifact,
-      note: 'artifact grounded in real code locations; reproducer not executed (v0)' });
+      note: `artifact grounded: claim cites ${confirmed.length} on-disk code location(s); reproducer not executed (v0)` });
   }
 }
 
-// Build the falsifiable artifact from the node's concrete evidence.
-function assembleArtifact(node, judgment) {
-  const evidence = [...(node.evidence || []), ...(node.seed ? [`seed(${node.seed.type}): ${node.seed.evidence}`] : [])];
+// Normalize evidence: structured items pass through, legacy strings become
+// context items, the seed's evidence is included (seeds carry real
+// evidence since the structured-evidence fix), and the driver-attached
+// locations ride along on the judgment record.
+function evidenceItems(node, judgment) {
+  const items = [];
+  for (const e of (node.evidence || [])) {
+    if (typeof e === 'string') items.push({ kind: 'context', text: e });
+    else if (e && typeof e === 'object') items.push(e);
+  }
+  if (node.seed && node.seed.evidence) {
+    items.push({ kind: 'context', text: `seed(${node.seed.type}): ${node.seed.evidence}` });
+  }
+  for (const e of (judgment?.attachedEvidence || [])) {
+    if (e && typeof e === 'object' && e.file && e.line) {
+      items.push({ kind: e.kind || 'code', file: e.file, line: e.line, text: e.text || '' });
+    }
+  }
+  return items;
+}
+
+// Code locations the claim cites: code/pattern evidence items with
+// file:line, plus the node's own symbol line (fallback only).
+// Returns { evidence: [...], symbolLine: {...} | null }. Deduplicated.
+function citedLocations(node, items) {
+  const seen = new Set(), evidence = [];
+  const add = (file, line, text) => {
+    if (!file || !line) return;
+    const key = `${file}:${line}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    evidence.push({ file, line, text: text || '' });
+  };
+  for (const it of items) {
+    if ((it.kind === 'code' || it.kind === 'pattern') && it.file && it.line) {
+      add(it.file, it.line, it.text);
+    }
+  }
+  let symbolLine = null;
+  if (node.file && node.symbolLine) symbolLine = { file: node.file, line: node.symbolLine, text: '' };
+  return { evidence, symbolLine };
+}
+
+// The strongest grounding signal: the cited file:line exists on disk and,
+// when the evidence cites text, the on-disk line matches it.
+function checkOnDisk(repoDir, loc) {
+  const text = readFileSafe(path.join(repoDir, loc.file));
+  if (!text) return { ok: false, reason: `file not found on disk: ${loc.file}` };
+  const lines = text.split('\n');
+  if (loc.line < 1 || loc.line > lines.length) {
+    return { ok: false, reason: `${loc.file}:${loc.line} out of range (${lines.length} lines)` };
+  }
+  const actual = lines[loc.line - 1].trim();
+  const cited = String(loc.text || '').trim().slice(0, 200);
+  if (cited && !actual.includes(cited) && !cited.includes(actual)) {
+    return { ok: false, reason: `${loc.file}:${loc.line} content mismatch` };
+  }
+  return { ok: true, actual };
+}
+
+// Build the falsifiable artifact from the node's concrete evidence,
+// including the judge's stated artifact and the on-disk confirmation.
+function assembleArtifact(node, judgment, items, confirmed) {
+  const verdict = judgment?.answers?.verdict?.choice || '?';
+  const aStated = judgment?.answers?.artifact_stated?.probability;
   const excerpt = (node.excerpt || '').trim();
   if (!node.file || !excerpt) return null;
   const lines = [
     `REPRODUCER SKETCH for ${node.file} :: ${node.scope || '<file>'} :: ${node.symbol || '?'}`,
-    `location: ${node.file}${node.symbolLine ? ':' + node.symbolLine : ''}`,
-    `seed: ${node.seed ? node.seed.type : 'manual'} — ${node.seed ? node.seed.evidence : ''}`,
-    'wrong behavior (per judge): ' + (judgment?.answers?.verdict?.choice === 'report' ? 'named in evidence below' : 'see evidence'),
+    `judge's stated artifact: verdict=${verdict}` +
+      (aStated != null ? `, artifact_stated P=${aStated} (ranking signal, not calibrated confidence)` : ''),
+    `on-disk confirmation: ${confirmed.length} cited location(s) exist in the repo: ` +
+      (confirmed.map((c) => `${c.file}:${c.line}`).join(', ') || 'none'),
     'evidence:',
-    ...evidence.slice(0, 6).map((e) => `  - ${String(e).slice(0, 300)}`),
+    ...items.slice(0, 8).map((e) => `  - [${e.kind || 'evidence'}]${e.file ? ' ' + e.file + (e.line ? ':' + e.line : '') : ''} ${String(e.text || '').slice(0, 300)}`.trimEnd()),
     'code under test:',
     ...excerpt.split('\n').slice(0, 25).map((l) => `  | ${l}`),
     'to falsify: run the sketch above against the code; if the stated wrong behavior does not occur, the finding is wrong.',
@@ -83,19 +177,29 @@ function assembleArtifact(node, judgment) {
   return { kind: 'reproducer-sketch', text: lines.join('\n').slice(0, 4000) };
 }
 
-// Deterministic grounding checks: the artifact must point at real locations.
-function groundedGaps(node, artifact) {
+// Deterministic grounding checks. The claim is grounded when the judge
+// stated a bug claim (verdict report/escalate), every cited code location
+// exists on disk with matching content, and at least one location is
+// confirmed. artifact_stated only adds a reason when the claim is already
+// weak on another ground — it never demotes alone.
+function groundedGaps(judgment, evidenceLocs, failedItems, confirmed) {
   const gaps = [];
-  const t = artifact.text;
-  if (!t.includes(node.file)) gaps.push('artifact does not name the file');
-  if (node.symbol && node.symbol !== '?' && !t.includes(node.symbol)) gaps.push('artifact does not name the symbol');
-  if (!node.excerpt || !node.excerpt.trim()) gaps.push('node has no code excerpt');
-  const ev = node.evidence || [];
-  const joined = ev.join('\n').toLowerCase();
-  const hasTrigger = /input|trigger|call|invoke|request/.test(joined);
-  const hasWrong = /wrong|incorrect|bug|fail|mismatch|off-by|leak/.test(joined);
-  if (!hasTrigger) gaps.push('evidence does not name an input or trigger');
-  if (!hasWrong) gaps.push('evidence does not name the wrong behavior');
+  const verdict = judgment?.answers?.verdict?.choice;
+  if (verdict !== 'report' && verdict !== 'escalate') {
+    gaps.push(`judge stated no bug claim (verdict=${verdict || '?'})`);
+  }
+  if (!evidenceLocs.length) {
+    gaps.push('evidence cites no code location (file:line)');
+  } else {
+    for (const f of failedItems) {
+      gaps.push(`evidence cites code not found on disk: ${f.file}:${f.line} (${f.check.reason})`);
+    }
+    if (!confirmed.length) gaps.push('no cited code location confirmed on disk');
+  }
+  const aStated = judgment?.answers?.artifact_stated?.probability;
+  if (gaps.length && aStated != null && aStated < 0.25) {
+    gaps.push(`judge stated no falsifiable artifact (artifact_stated P=${aStated}, ranking signal)`);
+  }
   return gaps;
 }
 

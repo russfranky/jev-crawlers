@@ -26,21 +26,45 @@ if (!seeds.length) seeds = ['diff', 'todo', 'patterns'];
 const isIgnored = loadIgnores(repo);
 const nodes = [];
 
-function addNode(file, symbol, scope, type, evidence, priority) {
+// Evidence items are structured so the verifier can ground them:
+//   { kind: 'code'|'pattern'|'diff'|'context', file, line, text, pattern? }
+// 'code' is a real code line with its file:line (the strongest grounding);
+// 'pattern' names the risky pattern that fired; 'diff' marks diff touch;
+// 'context' is free-form (seed summaries, relation notes). Seeds always
+// carry real evidence items now; `evidence: []` is gone from the pipeline.
+function ev(kind, file, line, text, extra) {
+  return { kind, file, line: line || 0, text: String(text).slice(0, 200), ...(extra || {}) };
+}
+
+function addNode(file, symbol, scope, type, items, summary, priority) {
   if (isIgnored(file)) return;
   if (only && !only.includes(file)) return;
   nodes.push(withId({
     file, symbol: symbol || '?', scope: scope || '<file>',
     kind: 'seed', depth: 0, priority,
-    seed: { type, evidence: String(evidence).slice(0, 400) },
+    seed: { type, evidence: String(summary).slice(0, 400) },
+    evidence: items,
   }));
+}
+
+// Line number of a symbol's declaration in file text (best effort).
+function declLine(text, symbol) {
+  const lines = text.split('\n');
+  const re = new RegExp(`^\\s*(?:export\\s+(?:default\\s+)?)?(?:async\\s+)?(?:function\\s+|class\\s+|(?:const|let|var)\\s+)${symbol}\\b`);
+  for (let i = 0; i < lines.length; i++) if (re.test(lines[i])) return i + 1;
+  return 0;
 }
 
 // Seed: git diff. Touched symbols become leads.
 if (seeds.includes('diff')) {
   for (const file of gitDiffFiles(repo, base)) {
     const text = readFileSafe(path.join(repo, file));
-    if (!text) { addNode(file, '?', '<file>', 'diff', `touched in diff vs ${base}`, 0.9); continue; }
+    if (!text) {
+      addNode(file, '?', '<file>', 'diff',
+        [ev('diff', file, 0, `touched in diff vs ${base}`)],
+        `touched in diff vs ${base}`, 0.9);
+      continue;
+    }
     let diffText = '';
     try {
       diffText = execFileSync('git', ['diff', '-U0', base, '--', file],
@@ -48,10 +72,21 @@ if (seeds.includes('diff')) {
     } catch { /* fall through with file-level node */ }
     const syms = new Set();
     for (const m of diffText.matchAll(/^[-+].*\b(?:function|def|class|const|let|var)\s+([A-Za-z_$][\w$]*)/gm)) syms.add(m[1]);
-    if (!syms.size) { addNode(file, '?', '<file>', 'diff', `touched in diff vs ${base}`, 0.9); continue; }
+    if (!syms.size) {
+      addNode(file, '?', '<file>', 'diff',
+        [ev('diff', file, 0, `touched in diff vs ${base}`)],
+        `touched in diff vs ${base}`, 0.9);
+      continue;
+    }
     for (const s of syms) {
       const scope = enclosingScope(text, 1);
-      addNode(file, s, scope, 'diff', `symbol ${s} touched in diff vs ${base}`, 1.0);
+      const dl = declLine(text, s);
+      const items = [ev('diff', file, 0, `symbol ${s} touched in diff vs ${base}`)];
+      if (dl) {
+        const line = text.split('\n')[dl - 1].trim();
+        items.push(ev('code', file, dl, line));
+      }
+      addNode(file, s, scope, 'diff', items, `symbol ${s} touched in diff vs ${base}`, 1.0);
     }
   }
 }
@@ -60,7 +95,11 @@ if (seeds.includes('diff')) {
 if (seeds.includes('todo')) {
   for (const hit of grepRegex(repo, /\b(TODO|FIXME|XXX|HACK)\b/, isIgnored)) {
     const m = hit.text.match(/\b(TODO|FIXME|XXX|HACK)\b\s*:?\s*(.{0,120})/);
-    addNode(hit.file, '?', hit.scope, 'todo', `${m ? m[1] : 'TODO'}: ${m ? m[2] : hit.text}`, 0.7);
+    const marker = `${m ? m[1] : 'TODO'}: ${m ? m[2] : hit.text}`;
+    addNode(hit.file, '?', hit.scope, 'todo',
+      [ev('code', hit.file, hit.line, hit.text),
+       ev('context', hit.file, hit.line, `TODO-style comment: ${marker}`)],
+      marker, 0.7);
   }
 }
 
@@ -76,7 +115,10 @@ if (seeds.includes('patterns')) {
   ];
   for (const [name, re, prio] of patterns) {
     for (const hit of grepRegex(repo, re, isIgnored)) {
-      addNode(hit.file, '?', hit.scope, `pattern:${name}`, hit.text, prio);
+      addNode(hit.file, '?', hit.scope, `pattern:${name}`,
+        [ev('code', hit.file, hit.line, hit.text),
+         ev('pattern', hit.file, hit.line, `risky pattern fired: ${name}`, { pattern: name })],
+        `pattern:${name} matched: ${hit.text}`, prio);
     }
   }
 }
