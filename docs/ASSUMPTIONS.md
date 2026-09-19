@@ -96,6 +96,17 @@ uncalibrated per R2. `providerMetadata.gateway.marketCost` returned
 $0.000035 for the call; the judge returns it as `marketCostUsd` and
 the driver prefers it over the M2 estimate.
 
+**M14. Parallel judging is viable (2026-09-19).** 6 parallel
+`crawl-judge` calls: 4.9 s wall vs about 8.6 s serial, 6/6
+succeeded, zero 429s. Per-call latency rose to 4.1-4.8 s (from about
+1.4 s serial). Partially covers U9.
+
+**M15. Expansion reaches true context at depth 1, one case
+(2026-09-19).** From the seeded off-by-one in `cart.js::total`,
+mechanical expansion reached `checkout.js` (the caller) at depth 1
+via symbol refs; frontier emptied by depth 3. One case. Partially
+covers U6.
+
 ## Research-backed
 
 **R1. Jev's I/O contract.** "Jev is a probabilistic decision model for
@@ -202,10 +213,14 @@ ranking property, not calibration. Validate further: larger labeled
 set; report ranking metrics and keep the "ranking signal, not
 calibrated confidence" label until a calibration run says otherwise.
 
-**U6. Mechanical expansion reaches real bug context.** Symbol refs,
-co-change history, and config refs are honest but unproven. Validate:
-on seeded bugs with known true context, measure the hit rate: does
-expansion reach the true context within depth 3?
+**U6. Mechanical expansion reaches real bug context (partially
+measured).** M15: from the seeded off-by-one in `cart.js::total`
+(`examples/todo-app`), expansion reached the true context
+(`checkout.js`, the caller) at depth 1 via symbol refs; frontier
+emptied by depth 3. One case, one repo. Validate further: hit rate
+over many seeded bugs with known true context, and whether depth-1
+noise (README.md matched the symbol by text search) drowns the
+signal at scale.
 
 **U7. Verifier grounding approximates bug validity.** v0 checks that
 the artifact names real locations and states an input, a wrong
@@ -220,9 +235,12 @@ ZDR", 200). One key, one observation: routing can differ by plan,
 so the README still tells every operator to verify with
 `crawl-judge --show-metadata`.
 
-**U9. Parallel judging throughput.** Serial calls are measured (M3);
-parallel calling is untested. Validate: N parallel calls; measure
-latency, 429 rate, and cost.
+**U9. Parallel judging throughput (partially measured).** M14: 6
+parallel `crawl-judge` calls finished in 4.9 s wall (about 8.6 s
+serial), 6/6 succeeded, zero 429s. Per-call latency degraded to
+4.1-4.8 s (from about 1.4 s serial), so parallelism buys wall clock
+at higher per-call cost. The driver stays serial for now; parallel
+judging is viable when latency budgets demand it.
 
 **U10. End-to-end crawl cost.** M10 is derived. Validate: run a
 500-node crawl and measure actual input tokens and spend.

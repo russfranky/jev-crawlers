@@ -211,3 +211,22 @@ The same call exposed two live fields the judge was dropping:
 `crawl-judge --show-metadata` now exists so operators can read both
 on their own plan; metadata is stripped from default output. Cost of
 this iteration's probes: 2 live calls, about $0.00007.
+
+## 10. Parallel judging and expansion hit rate (2026-09-19)
+
+Two more unvalidated assumptions converted to small measurements:
+
+- **U9, parallel judging.** 6 parallel `crawl-judge` calls: 4.9 s
+  wall (about 8.6 s serial), 6/6 succeeded, zero 429s. Per-call
+  latency degraded to 4.1-4.8 s from about 1.4 s serial, so
+  parallelism trades per-call latency for wall clock. The driver
+  stays serial; parallel judging is viable when a latency budget
+  demands it. Recorded as M14.
+- **U6, expansion hit rate.** From the seeded off-by-one in
+  `cart.js::total`, mechanical expansion reached the true context
+  (`checkout.js`, the caller) at depth 1 via symbol refs; the
+  frontier emptied by depth 3. Depth-1 noise exists (README.md
+  matched the symbol by text search). One case, one repo. Recorded
+  as M15; a real hit-rate number needs many seeded bugs.
+
+Probe cost: 7 live calls, about $0.00025.
