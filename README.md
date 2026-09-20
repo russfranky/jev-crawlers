@@ -141,9 +141,13 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   reports the cost for every crawl. Heavy multi-file context can cost
   more; that upper band is still derived, not measured. Budget
   accordingly.
-- **No secret redaction.** Excerpts go to the gateway as-is. Only `.env`
-  files are excluded from reading. Scan for secret-shaped values before
-  crawling private code, and verify ZDR routing on your plan (see above).
+- **Pre-judge redaction.** Credential-shaped values (key-named
+  assignments, `Authorization: Bearer` tokens, high-entropy blobs) are
+  stripped from excerpts and evidence and replaced with
+  `[REDACTED:credential]` before any network call; local stages (seed,
+  expand, verify) still work on raw text. Deny-listed secret files
+  (`.env`, private keys, `*.pem`) are never read. Full contract:
+  `docs/REDACTION.md`.
 - **Verification v0 checks grounding, not execution.** The verifier
   confirms the artifact names real code on disk. It does not run the
   reproducer. Measured 2026-09-19 (M20, supersedes M18): on 6
