@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // jev-report — render findings as Markdown and JSON.
 // Reads jev-verify output from stdin. Never calls an unverified lead a
-// bug. Writes Markdown to stdout (or --out FILE) and a JSON summary to
-// stderr... no: JSON goes to --json FILE when given. Keep it simple.
+// bug. Writes Markdown to stdout (or --out FILE) and JSON to --json FILE.
 import fs from 'node:fs';
 import { readStdinJson, asArray, fail } from '../lib/io.mjs';
 
