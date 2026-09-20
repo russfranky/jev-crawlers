@@ -151,5 +151,23 @@
     "verdict": "false-positive",
     "reason": "Correctly-implemented Privy JWKS auth config (customJwt, RS256, issuer-pinned). Triaged by reading: no weakness. Teaches the judge that legitimate auth plumbing is not a bug.",
     "date": "2026-09-19"
+  },
+  {
+    "file": "examples/labeled-eval/results-2026-09-20.json",
+    "line": 75,
+    "pattern": "pattern:auth",
+    "evidence": "\"bugType\": \"hardcoded-secret\",",
+    "verdict": "false-positive",
+    "reason": "Fixture results file: \"bugType\": \"hardcoded-secret\" is a label, not a committed secret. Same class as the 2026-09-19 verdict; dated results files recur on every remeasure.",
+    "date": "2026-09-20"
+  },
+  {
+    "file": "examples/verifier-eval/run-verifier-eval.mjs",
+    "line": 46,
+    "pattern": "pattern:auth",
+    "evidence": "'bugs.js::STRIPE_KEY': { label: 'bug', bugType: 'hardcoded-secret' },",
+    "verdict": "false-positive",
+    "reason": "Fixture label map mentioning STRIPE_KEY; a test label, not a real credential. Same class as the run-labeled-eval.mjs verdict.",
+    "date": "2026-09-20"
   }
 ]
