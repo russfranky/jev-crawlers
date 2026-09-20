@@ -137,6 +137,14 @@ if (seeds.includes('patterns')) {
     // scheduler, not a shell). Only real OS-invocation forms count.
     ['shell', /\bexecSync\s*\(|\bexec\s*\(|\bos\.execute\s*\(|\bio\.popen\s*\(|(?:child_process|cp)\.spawn\s*\(/, 0.8],
     ['raw-html', /\.innerHTML\s*=/, 0.6],
+    // 'res.send(' alone is noise (most handlers send static strings or
+    // JSON). Require string concatenation (+) of request input
+    // (req.query/req.params/req.body) inside the same call's argument
+    // list — the reflected-XSS shape. The seeder matches per line, so
+    // multi-line sinks are missed rather than over-matched; template-
+    // literal interpolation (`${req.query.q}`) is a different shape and
+    // is deliberately not covered here.
+    ['reflected-xss', /\bres\s*\.\s*(?:send|write|end)\s*\([^)]*(?:\+[^)]*\breq\s*\.\s*(?:query|params|body)\b|\breq\s*\.\s*(?:query|params|body)\b[^)]*\+)/, 0.8],
   ];
   for (const [name, re, prio] of patterns) {
     for (const hit of grepRegex(repo, re, isIgnored)) {
