@@ -10,6 +10,7 @@ import { execFileSync } from 'node:child_process';
 import { writeJsonl, readFileSafe, fail } from '../lib/io.mjs';
 import { withId } from '../lib/graph.mjs';
 import { loadIgnores, grepRegex, enclosingScope, gitDiffFiles } from '../lib/search.mjs';
+import { loadVerdicts, isExpired, verdictDate } from '../lib/verdicts.mjs';
 
 const args = process.argv.slice(2);
 let repo = process.cwd(), base = 'HEAD', seeds = [], only = null;
@@ -152,19 +153,18 @@ if (seeds.includes('patterns')) {
 }
 
 // False-positive feedback loop. Human verdicts live in
-// data/fp-verdicts.json: {file, line, pattern, evidence, verdict, reason,
-// date}. A seed is suppressed only when its (file, pattern, matched evidence
-// text) exactly repeats a verdict:false-positive entry — never by bare
-// file:line, since lines shift. Class-level entries (evidence: null) never
-// suppress; they exist for the judge's negative examples. Suppressions are
-// logged to stderr so runs stay auditable. This does not weaken patterns.
+// data/fp-verdicts.json (schema: docs/VERDICTS.md). A seed is suppressed
+// only when its (file, pattern, matched evidence text) exactly repeats a
+// verdict:false-positive entry — never by bare file:line, since lines
+// shift. Class-level entries (evidence: null) never suppress; they exist
+// for the judge's negative examples. Expired records no longer suppress:
+// the finding is reconsidered on the next run. Suppressions are logged to
+// stderr so runs stay auditable. This does not weaken patterns.
 function loadFpVerdicts() {
-  try {
-    const p = path.join(new URL(import.meta.url).pathname, '..', '..', 'data', 'fp-verdicts.json');
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch { return []; }
+  const p = path.join(new URL(import.meta.url).pathname, '..', '..', 'data', 'fp-verdicts.json');
+  return loadVerdicts(p);
 }
-const fpVerdicts = loadFpVerdicts().filter(v => v && v.verdict === 'false-positive' && v.evidence);
+const fpVerdicts = loadFpVerdicts().filter(v => v && v.verdict === 'false-positive' && v.evidence && !isExpired(v));
 function isFpRepeat(node) {
   const codeTexts = (node.evidence || []).filter(e => e && e.kind === 'code').map(e => e.text);
   return fpVerdicts.find(v =>
@@ -174,6 +174,6 @@ function isFpRepeat(node) {
 
 writeJsonl(nodes.filter(n => {
   const v = isFpRepeat(n);
-  if (v) console.error(`fp-verdict: suppressed ${n.file} [${n.seed.type}] (verdict ${v.date})`);
+  if (v) console.error(`fp-verdict: suppressed ${n.file} [${n.seed.type}] (verdict ${verdictDate(v)})`);
   return !v;
 }));
