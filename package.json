@@ -5,7 +5,8 @@
     "jev-judge": "bin/jev-judge.mjs",
     "jev-verify": "bin/jev-verify.mjs",
     "jev-expand": "bin/jev-expand.mjs",
-    "jev-report": "bin/jev-report.mjs"
+    "jev-report": "bin/jev-report.mjs",
+    "jev-verdict": "bin/jev-verdict.mjs"
   },
   "dependencies": {
     "ai": "^7.0.105"
