@@ -106,5 +106,50 @@
     "verdict": "false-positive",
     "reason": "Fixture comment describing the labeled-eval fixture bug, not a live credential.",
     "date": "2026-09-19"
+  },
+  {
+    "file": "src/lib/kokoroShim.ts",
+    "line": 75,
+    "pattern": "pattern:shell",
+    "evidence": "while ((m = re.exec(text))) {",
+    "verdict": "false-positive",
+    "reason": "RegExp.prototype.exec for sentence splitting in the TTS shim, not shell execution. New noise class: the shell pattern's bare exec( matches regex .exec().",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "src/hooks/useStreamingChat.ts",
+    "line": 97,
+    "pattern": "pattern:shell",
+    "evidence": "while ((match = SENTENCE_RE.exec(buffer)) !== null) {",
+    "verdict": "false-positive",
+    "reason": "RegExp.prototype.exec for streaming sentence detection, not shell execution. Same regex-exec noise class.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "src/components/LandingCard.tsx",
+    "line": 9,
+    "pattern": "pattern:auth",
+    "evidence": "The pre-auth landing card that sits beneath the avatar. We only render this",
+    "verdict": "false-positive",
+    "reason": "English prose in a component comment ('pre-auth'), not an auth weakness.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "bun.lock",
+    "line": 1,
+    "pattern": "pattern:auth",
+    "evidence": "\"@privy-io/react-auth\": \"^1.97.5\"",
+    "verdict": "false-positive",
+    "reason": "Lockfile package names (@privy-io/react-auth, @walletconnect/relay-auth) are dependency identifiers, not auth weaknesses. Lockfiles/build metadata should be excluded from pattern seeding.",
+    "date": "2026-09-19"
+  },
+  {
+    "file": "convex/auth.config.ts",
+    "line": 16,
+    "pattern": "pattern:auth",
+    "evidence": "issuer: \"https://auth.privy.io/\",",
+    "verdict": "false-positive",
+    "reason": "Correctly-implemented Privy JWKS auth config (customJwt, RS256, issuer-pinned). Triaged by reading: no weakness. Teaches the judge that legitimate auth plumbing is not a bug.",
+    "date": "2026-09-19"
   }
 ]

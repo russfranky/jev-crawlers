@@ -427,3 +427,12 @@ negative examples. Dogfood re-run: 7 -> 0 FP candidates; the fixed
 SESSION_SECRET finding still seeds. Limit: repeats are killed, novel
 FPs are not — new noise classes still surface as candidates, which is
 the loop's input.
+
+**M24. Metaye hunt: pipeline found 0, human found 1 (measured
+2026-09-19).** 40 seeds -> 8 judgments -> 0 candidates ($0.00063);
+the PWA manifest icon 404s were found by human triage, fixed, and pushed
+(metaye `2bd5174f`). New noise class recorded: bare `exec(` in the shell
+pattern matches `RegExp.prototype.exec` — 5 FP verdicts added, seeder
+suppresses them (40 -> 35 seeds). /chat-stream has no rate limiting
+(unauthenticated by design); reported as a hardening gap, not fixed —
+needs owner product decisions.

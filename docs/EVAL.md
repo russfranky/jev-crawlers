@@ -523,3 +523,47 @@ Recorded as M23. Honest limit: this kills *repeat* FPs, not novel
 ones. The judge's negative examples bias it against known classes,
 but a new noise class will still surface as a candidate — which is
 the loop's input, not its failure.
+
+## 19. Metaye hunt: real bug found and fixed (2026-09-19)
+
+Full mission on `russfranky/metaye` (Vite/React/TS/Convex/Privy/Three.js
+talking-head app), owner-authorized. Local mirror was stale (136 files vs
+281 on remote main); synced to remote head `16980bb2` before crawling —
+the first crawl ran against the stale tree with no gateway key and judged
+nothing, both fixed before the real run.
+
+Real run (`node bin/crawl.mjs --repo ~/workspace/metaye --budget 100`,
+real Jev calls):
+
+- 40 seeds -> 8 judgments -> 8 pruned -> **0 candidates**,
+  termination: diminishing-returns, $0.00063, wall 9.1 s.
+- Seed mix was almost entirely noise: `bun.lock` / `tsconfig.tsbuildinfo`
+  / minified build chunks firing on package names, README prose, and two
+  `RegExp.prototype.exec` hits (`re.exec(`, `SENTENCE_RE.exec(`) on the
+  `pattern:shell` bare `exec(` — a new noise class from the M21 pattern
+  (recorded as FP verdicts; seeder now suppresses all 5: 40 -> 35 seeds).
+- Auth code triaged by hand (convex/chat.ts, convex/auth.config.ts,
+  convex/http.ts, usePrivy.ts): correctly implemented Privy JWKS
+  verification, issuer-pinned, per-app JWKS URL. No bug. Notable hardening
+  gap, reported not fixed: POST /chat-stream is unauthenticated by design
+  (anon fallback) with no rate limiting — each call burns OpenAI tokens.
+  Fix needs owner product decisions (limits, identity, UX); no rate-limit
+  utility exists in the repo and handrolling one was out of scope.
+
+**Real bug found outside the pipeline** (no pattern covers it) and fixed:
+
+- `assets/manifest--peWSb41.json` referenced `favicon.ico`,
+  `logo192.png`, `logo512.png`, but the build emits hashed names
+  (`favicon-E1VHpXCm.ico`, `logo192-cx3brImN.png`) and no logo512 —
+  all three PWA icons 404'd. Fixed: manifest points at the real files,
+  added the missing `assets/logo512.png`, updated the root
+  `manifest.json` template for the next manual deploy. Pushed to metaye
+  main as `2bd5174f` (1 added, 2 modified, 0 deletions; all blob SHAs
+  verified). The Convex standalone-mode fix and hashed-asset index.html
+  from the earlier session were confirmed already on main — not re-fixed.
+
+Recorded as M24. Honest limit: the pipeline's 0 candidates came from
+8 judgments on 40 mostly-noise seeds; the real bug was found by human
+triage of the known-broken PWA surface, not by the crawler. The crawler
+is a triage assistant, not an autonomous finder — this run is more
+evidence for that.
