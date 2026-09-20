@@ -41,6 +41,7 @@
 //     artifact: { kind, text } | null }
 import path from 'node:path';
 import { readStdinJson, asArray, writeJsonl, fail, readFileSafe } from '../lib/io.mjs';
+import { findingFingerprint } from '../lib/fingerprint.mjs';
 
 const args = process.argv.slice(2);
 let riskFloor = 1, repo = process.cwd();
@@ -60,8 +61,12 @@ if (!input) process.exit(0); // empty pipe in: empty pipe out
 const findings = [];
 for (const { node, judgment } of asArray(input)) {
   const routing = judgment?.routing || 'review-queue';
+  // Stable finding identity (spec §18): same claim -> same fingerprint
+  // across runs, regardless of verification outcome. Computed from the
+  // claim only (verdict class, primary location, evidence path).
+  const fingerprint = findingFingerprint({ node, judgment }, repo);
   if (routing === 'escalate-owner' || routing === 'needs-artifact' || routing === 'review-queue') {
-    findings.push({ node, judgment, status: 'escalated', artifact: null,
+    findings.push({ node, judgment, status: 'escalated', artifact: null, fingerprint,
       note: routing === 'needs-artifact'
         ? 'judge saw a bug but the case is not falsifiable; human decides'
         : routing === 'review-queue'
@@ -94,10 +99,10 @@ for (const { node, judgment } of asArray(input)) {
   }
 
   if (reasons.length) {
-    findings.push({ node, judgment, status: 'unverified-lead', artifact: artifact || null,
+    findings.push({ node, judgment, status: 'unverified-lead', artifact: artifact || null, fingerprint,
       note: 'demoted: ' + reasons.join('; ') });
   } else {
-    findings.push({ node, judgment, status: 'bug', artifact,
+    findings.push({ node, judgment, status: 'bug', artifact, fingerprint,
       note: `artifact grounded: claim cites ${confirmed.length} on-disk code location(s); reproducer not executed (v0)` });
   }
 }

@@ -450,3 +450,21 @@ routing variance of one node between runs, not verifier drift.
 (README has a ThatMgmt loop-gates usage example); it needs only node
 20+ and lib/io.mjs. Limit: the equivalence proof is n=12 on the
 fixture; nothing about real-code behavior was re-measured here.
+
+**M26. Stable finding fingerprints (measured 2026-09-20).** Spec §18:
+"Repeated findings across runs keep a stable fingerprint so CI can
+mark them unchanged, resolved, or regressed"; "Fingerprint combines
+defect class, primary location, and normalized evidence path."
+`lib/fingerprint.mjs` implements exactly that: sha256 over the
+newline-joined preimage `fingerprint-v1 | <verdict choice> |
+<repo-relative file>:<symbol line> | <sorted deduped evidence
+file:line list>`, emitted as `sha256:<hex>` on every `jev-verify`
+finding (bug, unverified lead, escalated) and rendered by
+`jev-report`. Defect class is the judge's verdict choice
+('report'|'escalate') — the finest claim classification the pipeline
+records; the judge contract has no defect taxonomy. Paths normalize
+the way the seeder emits them (repo-relative, forward slashes). The
+fingerprint never covers verification outcome, timestamps, or absolute
+paths, so a re-found claim keeps its fingerprint even when its status
+changes. Determinism verified: two verifier runs over the same input
+produce identical fingerprints (see progress log 2026-09-20).

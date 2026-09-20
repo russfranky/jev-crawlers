@@ -43,6 +43,7 @@ const renderFinding = (f) => {
   lines.push(`## ${n.file || '?'} :: ${n.symbol || '?'} (${n.scope || '<file>'})`);
   lines.push('');
   lines.push(`- verdict: ${f.judgment?.routing || '?'}${risk != null ? `, risk ${risk}/3 (band)` : ''}${p != null ? `, bug_likely P${p.toFixed(2)} (ranking signal, not calibrated confidence)` : ''}${conf != null ? `, Jev confidence ${conf.toFixed(2)} (vendor-reported, uncalibrated)` : ''}`);
+  if (f.fingerprint) lines.push(`- fingerprint: ${f.fingerprint}`);
   lines.push(`- depth: ${n.depth ?? 0}, relation: ${n.relation || n.seed?.type || 'seed'}`);
   if (f.note) lines.push(`- note: ${f.note}`);
   if (f.artifact) {
