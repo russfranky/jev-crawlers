@@ -105,6 +105,20 @@ if (seeds.includes('todo')) {
   }
 }
 
+// Verdict-store file paths are repo-root-relative, but --repo may point at
+// a subdirectory. Compare on trailing path segments so a verdict recorded
+// at the root still matches a run scoped to a subtree (and vice versa).
+// Combined with the exact pattern + exact evidence-text match, the
+// collision risk is negligible; every suppression stays visible on stderr.
+function sameFile(a, b) {
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const pa = a.split('/'), pb = b.split('/');
+  const shorter = pa.length < pb.length ? pa : pb;
+  const longer = pa.length < pb.length ? pb : pa;
+  return longer.slice(-shorter.length).join('/') === shorter.join('/');
+}
+
 // Seed: risky patterns (auth, money movement, dynamic code).
 if (seeds.includes('patterns')) {
   const patterns = [
@@ -128,7 +142,7 @@ if (seeds.includes('patterns')) {
       // The FP verdict store quotes matched evidence text verbatim; seeding
       // it would re-fire patterns on the quotes (self-referential noise).
       // It is machine data, not code under audit.
-      if (hit.file === 'data/fp-verdicts.json') continue;
+      if (sameFile(hit.file, 'data/fp-verdicts.json')) continue;
       addNode(hit.file, '?', hit.scope, `pattern:${name}`,
         [ev('code', hit.file, hit.line, hit.text),
          ev('pattern', hit.file, hit.line, `risky pattern fired: ${name}`, { pattern: name })],
@@ -154,7 +168,7 @@ const fpVerdicts = loadFpVerdicts().filter(v => v && v.verdict === 'false-positi
 function isFpRepeat(node) {
   const codeTexts = (node.evidence || []).filter(e => e && e.kind === 'code').map(e => e.text);
   return fpVerdicts.find(v =>
-    v.file === node.file && v.pattern === (node.seed && node.seed.type) &&
+    sameFile(v.file, node.file) && v.pattern === (node.seed && node.seed.type) &&
     codeTexts.some(t => t === v.evidence || t.includes(v.evidence)));
 }
 
