@@ -8,7 +8,7 @@ A crawl explores a graph of **nodes**. One node is one lead: a file, a symbol, a
 - **Visited set**: the driver judges each identity once per crawl.
 - **Priority frontier**: a max-heap. Child priority = parent priority x decay (default 0.85), plus a boost when the judge says "expand" with high bug_likely. Ties favor shallow depth, so the crawl stays near the seed.
 
-## The four primitives and the driver
+## The primitives and the driver
 
 The primitives are interfaces. The driver (`bin/crawl`) owns recursion.
 
@@ -23,8 +23,9 @@ jev-seed --repo X | jev-expand --repo X | jev-judge | jev-verify --repo X | jev-
 | jev-judge | node(s) | {node, judgment}, one per line | 1 Jev call per node |
 | jev-verify | judged nodes | findings, one per line | none |
 | jev-report | findings | markdown + JSON | none |
+| jev-verdict | flags | appends a reviewer outcome to `data/fp-verdicts.json` | none |
 
-Gates live outside the crawler. Budget, depth, and the diminishing-returns gate are driver flags. Escalation policy is in the question set. The repo never holds a key; the judge reads `AI_GATEWAY_API_KEY` from the environment and fails closed without it.
+Gates live outside the crawler. Budget, depth, and the diminishing-returns gate are driver flags. Escalation policy is in the question set. The repo never holds a key; the judge reads `AI_GATEWAY_API_KEY` from the environment and fails closed without it. Human "not-a-bug" rulings go through `jev-verdict` (see `docs/VERDICTS.md`) and are fed back as negative examples on the next judge call.
 
 ## Termination
 
@@ -49,12 +50,15 @@ AST and language-server expansion is roadmap. The current text search is honest 
 
 ## Judgment and context packing
 
-`jev-judge` sends one packed state per node to Jev (`typesafe-ai/jev` via the AI Gateway). Truncation order is explicit; nothing drops silently:
+`jev-judge` sends one packed state per node to Jev (`typesafe-ai/jev` via the AI Gateway). Before the network call, `packState` runs a pre-judge redaction pass (`lib/redact.mjs`; see `docs/REDACTION.md`) so credential-shaped values never leave the machine. Truncation order is explicit; nothing drops silently:
 
 1. Repo metadata drops first (informational only).
 2. Evidence beyond the first 8 entries drops next.
-3. The file excerpt window shrinks symmetrically around the symbol line.
+3. The file excerpt window shrinks symmetrically around the hit line
+   inside the already-windowed excerpt (`excerptStartLine` is the
+   1-based first line of that window).
 4. Identity, seed context, and the question block never truncate.
+5. Redaction markers are never stripped.
 
 The packer reports what it truncated in the judgment JSON.
 
@@ -87,20 +91,27 @@ Anything that fails becomes an **unverified lead**. The report never calls it a 
 
 ## Cost math
 
-Honest numbers, measured or derived from the Jev calibration work (see
-`docs/ASSUMPTIONS.md` for the register):
+Two layers, kept separate on purpose:
 
-- One normal node: about $0.00008 of Jev input tokens (output is free).
-  Derived with headroom above the measured $0.000042 per call on
-  ~1.1k-token states.
-- 500 nodes near the state cap: $0.04 to $0.05. Derived, not measured
-  end to end.
-- 500 nodes with realistic multi-file context: $0.17 to $0.34. Derived,
-  not measured end to end.
-- Latency: about 1 second per node, serial (measured p50 656 ms,
-  p95 1.6 s). Parallel judging is untested.
+**Measured end-to-end** (`examples/cost-eval/results-2026-09-19.json`, 493 judged nodes, parallel 6):
 
-The driver reports estimated cost per crawl. Set `--budget` to cap spend.
+- Mean spend: **$0.00006 per judgment** (gateway `marketCostUsd`).
+- 493 nodes: **$0.02965** total (~$0.03 per 500).
+- Mean input tokens: 1,432. Mean latency: 2.5 s per call.
+- Wall clock at parallel 6: 10.2 minutes for 493 nodes.
+
+**Earlier calibration / derived** (small states, serial; see `docs/ASSUMPTIONS.md`):
+
+- One small-state call: measured $0.000042 on ~1.1k-token states.
+  Architecture used to quote $0.00008 with headroom; the live crawl
+  sits between those two at $0.00006.
+- Latency on the small-state calibration: p50 656 ms, p95 1.6 s.
+  Live crawl latency is higher because packed states are larger.
+- 500 nodes with oversized multi-file context: $0.17 to $0.34 remains
+  a derived upper bound, not a measured crawl.
+
+The driver reports estimated cost per crawl. Set `--budget` to cap spend
+(default 60 ≈ $0.004 at the measured rate).
 
 ## Provenance
 
