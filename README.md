@@ -68,9 +68,12 @@ judgment's `routing` and `answers` (`verdict.choice`, `risk.score`,
 `artifact_stated.probability`, `bug_likely.probability`). The verifier
 reads every cited file:line off disk and confirms it exists with
 matching content; a fabricated citation demotes the finding to an
-**unverified lead** by itself. Anything that is not routed
-`file-report` passes through as `escalated` — the verifier never
-invents a bug claim the judge did not make.
+**unverified lead** by itself. Routings in the escalate family
+(`escalate-owner`, `needs-artifact`, `review-queue`) pass through as
+`escalated` — the verifier never invents a bug claim the judge did
+not make. Driver-internal routings (`expand-node`, `auto-prune`) are
+not findings and produce no output; the driver consumes those before
+verification.
 
 Example: gating the ThatMgmt Jev loop. The loop's gates (`ralph-jev`)
 already emit typed judgments per step; piping a gate's output through
