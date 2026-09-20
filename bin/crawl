@@ -13,6 +13,7 @@
 // empty frontier, or the diminishing-returns gate (8 straight low-risk
 // outcomes: pruned or sent to the review queue, all in the low risk band).
 // Judgment calls Jev; expansion is mechanical.
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -25,7 +26,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 let repo = process.cwd(), seedKinds = [], base = 'HEAD', budget = 60, maxDepth = 6,
   decay = 0.85, maxChildren = 12, outFile = null, jsonFile = null, dryRun = false,
-  only = null, statsJson = false;
+  only = null, statsJson = false, telemetry = false;
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (a === '--repo' && args[i + 1]) repo = args[++i];
@@ -39,11 +40,15 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--out' && args[i + 1]) outFile = args[++i];
   else if (a === '--json' && args[i + 1]) jsonFile = args[++i];
   else if (a === '--stats-json') statsJson = true;
+  else if (a === '--telemetry') telemetry = true;
   else if (a === '--dry-run') dryRun = true;
   else if (a === '--help' || a === '-h') {
     console.log(`usage: crawl --repo PATH [--seed diff|todo|patterns] [--base HEAD] [--budget 60]
              [--depth 6] [--decay 0.85] [--max-children 12] [--only a.js,b.js]
-             [--out report.md] [--json report.json] [--stats-json] [--dry-run]`);
+             [--out report.md] [--json report.json] [--stats-json] [--telemetry] [--dry-run]`);
+    console.log('  --telemetry: append one NDJSON record of run counts/timings/cost');
+    console.log('    to data/telemetry.jsonl (opt-in; off by default). Never records');
+    console.log('    file paths, source, excerpts, or finding details. See docs/TELEMETRY.md.');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
@@ -51,6 +56,9 @@ if (!seedKinds.length) seedKinds = ['diff', 'todo', 'patterns'];
 repo = path.resolve(repo); // children run with cwd=repo; keep the path absolute
 
 const t0 = Date.now();
+// Per-stage wall timings (ms), driver-measured. Recorded only when
+// --telemetry is passed; never affects the crawl itself.
+const timingsMs = { seed: 0, judge: 0, expand: 0, verify: 0, report: 0 };
 // A real pipe: spawn the stage, write records as JSON lines on its stdin,
 // read JSON lines back from its stdout. Stages are dumb filters (one tool,
 // one job); all orchestration — frontier, budget, termination — lives here.
@@ -65,12 +73,14 @@ const pipe = (bin, binArgs, recordsIn) => {
 };
 
 // 1. Seed.
+const tSeed = Date.now();
 const seedArgs = ['--repo', repo, '--base', base, ...(only ? ['--only', only] : [])];
 for (const s of seedKinds) seedArgs.push('--' + s);
 let seeds;
 try {
   seeds = pipe('jev-seed.mjs', seedArgs, null);
 } catch (e) { fail(`jev-seed failed: ${e.message}`, 2); }
+timingsMs.seed = Date.now() - tSeed;
 for (const s of seeds) {
   withId(s);
   const { excerpt, symbolLine } = fileExcerpt(repo, s.file, 1, 30);
@@ -109,7 +119,9 @@ while (frontier.size > 0) {
     judgment = stubJudgment(node);
   } else {
     try {
+      const tJudge = Date.now();
       const [res] = pipe('jev-judge.mjs', [], node);
+      timingsMs.judge += Date.now() - tJudge;
       judgment = res.judgment;
     } catch (e) {
       process.stderr.write(`crawl: judge failed on ${node.id}, treating as review: ${e.message.slice(0, 120)}\n`);
@@ -135,7 +147,9 @@ while (frontier.size > 0) {
     if ((node.depth ?? 0) >= maxDepth) continue;
     let children = [];
     try {
+      const tExpand = Date.now();
       children = pipe('jev-expand.mjs', ['--repo', repo, '--max-children', String(maxChildren)], node);
+      timingsMs.expand += Date.now() - tExpand;
     } catch (e) {
       process.stderr.write(`crawl: expand failed on ${node.id}: ${e.message.slice(0, 120)}\n`);
     }
@@ -179,11 +193,14 @@ const stats = {
 let verified = [];
 if (candidates.length) {
   try {
+    const tVerify = Date.now();
     verified = pipe('jev-verify.mjs', [], candidates);
+    timingsMs.verify = Date.now() - tVerify;
   } catch (e) { fail(`jev-verify failed: ${e.message}`, 2); }
 }
 let report = '';
 try {
+  const tReport = Date.now();
   const reportArgs = ['--stats', JSON.stringify(stats)];
   if (outFile) reportArgs.push('--out', outFile);
   if (jsonFile) reportArgs.push('--json', jsonFile);
@@ -191,7 +208,40 @@ try {
     cwd: repo, encoding: 'utf8', env: process.env,
     input: verified.map((v) => JSON.stringify(v)).join('\n') + '\n', stdio: ['pipe', 'pipe', 'inherit'], maxBuffer: 64 * 1024 * 1024,
   });
+  timingsMs.report = Date.now() - tReport;
 } catch (e) { fail(`jev-report failed: ${e.message}`, 2); }
+
+timingsMs.total = Date.now() - t0;
+
+// Opt-in telemetry (spec section 19: off by default for local runs;
+// counts and timings only, never source or paths). One NDJSON record
+// per run, appended to the crawler's own data dir — never the crawled
+// repo, never committed (see .gitignore).
+if (telemetry) {
+  const record = {
+    ts: new Date().toISOString(),
+    schema: 1,
+    counts: {
+      seeds: seeds.length,
+      nodesVisited: visited.size,
+      judgments: judged,
+      pruned,
+      expanded,
+      depthCapped,
+      candidates: candidates.length,
+      bugs: verified.filter((v) => v.status === 'bug').length,
+      unverifiedLeads: verified.filter((v) => v.status === 'unverified-lead').length,
+      escalated: verified.filter((v) => v.status === 'escalated').length,
+    },
+    timingsMs,
+    estCostUsd: stats.estCostUsd,
+    termination,
+    dryRun,
+  };
+  const telPath = path.join(HERE, '..', 'data', 'telemetry.jsonl');
+  fs.mkdirSync(path.dirname(telPath), { recursive: true });
+  fs.appendFileSync(telPath, JSON.stringify(record) + '\n');
+}
 
 if (!outFile) process.stdout.write(report);
 if (statsJson) process.stderr.write(JSON.stringify(stats) + '\n');
