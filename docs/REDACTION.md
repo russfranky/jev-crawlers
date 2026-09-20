@@ -17,8 +17,8 @@ redacted**. Nothing secret-bearing ever leaves the machine.
 ## What is redacted
 
 Credential-shaped **values** are replaced with the literal marker
-`[REDACTED:credential]`. Two detectors (the spec's "entropy and
-key-name detection"):
+`[REDACTED:credential]`. Detectors (the spec's "entropy and key-name
+detection" plus known credential prefixes):
 
 1. **Key-name**: an assignment whose key looks like a credential name
    (`api_key`, `secret`, `token`, `password`, `passwd`, `auth_token`,
@@ -29,6 +29,12 @@ key-name detection"):
    bearer tokens, hex keys, and opaque credential blobs.
 3. **`Authorization: Bearer <token>`** — the canonical header shape,
    which has no assignment operator.
+4. **PEM / OpenSSH blocks**: `-----BEGIN … PRIVATE KEY-----` through
+   the matching `END` line. Each interior line is replaced with the
+   marker so line numbers stay aligned with the on-disk file.
+5. **Known prefixes**: `sk-` / `sk-ant-` (OpenAI / Anthropic),
+   `ghp_` / `github_pat_` (GitHub), `xox` (Slack), `AKIA` / `ASIA`
+   followed by 16 alphanumeric chars (AWS access key ids).
 
 The redaction is lossy-safe: only the value is replaced. Keys,
 operators, quoting, and surrounding code stay intact, so the judge
@@ -71,23 +77,9 @@ Secret-bearing files are never read, in any directory (see
 No live Jev call needed (packState is pure):
 
 ```sh
-rm -rf /tmp/red_scratch && mkdir /tmp/red_scratch
-printf 'function connect() {\n  const api_key = "EXAMPLE_KEY_NOT_REAL_12345";\n  return db.open(api_key);\n}\n' > /tmp/red_scratch/db.js
-# 1. The pattern still seeds (redaction is pre-judge, not pre-seed):
-./bin/jev-seed.mjs --repo /tmp/red_scratch --patterns | grep -c api_key  # expect >= 1
-# 2. The judge input carries no raw secret (run from the repo root):
-cat > ./red_check.mjs <<'EOF'
-import { packState } from './lib/jev.mjs';
-import { fileExcerpt } from './lib/search.mjs';
-const { excerpt } = fileExcerpt('/tmp/red_scratch', 'db.js', 2, 40);
-const { state, redactions } = packState({ file: 'db.js', symbolLine: 2, excerpt, evidence: [] });
-if (state.includes('EXAMPLE_KEY_NOT_REAL_12345')) throw new Error('LEAK: raw secret in judge state');
-if (!state.includes('[REDACTED:credential]')) throw new Error('no redaction marker');
-console.log('clean;', JSON.stringify(redactions));
-EOF
-node ./red_check.mjs; rm ./red_check.mjs
+npm test
 ```
 
-Expected: the seeder fires, the packed state contains
-`[REDACTED:credential]` and no raw secret, and `redactions` reports
-`[{ "class": "credential", "count": N }]`.
+`test/redact.test.mjs` covers key-name, entropy, Bearer, PEM, and
+prefix detectors. `packState` is the choke point: a raw secret must
+never appear in the packed judge state.
