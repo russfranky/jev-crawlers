@@ -7,9 +7,9 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { asArray, writeJsonl, readFileSafe, fail } from '../lib/io.mjs';
+import { writeJsonl, readFileSafe, fail } from '../lib/io.mjs';
 import { withId } from '../lib/graph.mjs';
-import { loadIgnores, grepSymbol, grepRegex, enclosingScope, gitDiffFiles } from '../lib/search.mjs';
+import { loadIgnores, grepRegex, enclosingScope, gitDiffFiles } from '../lib/search.mjs';
 
 const args = process.argv.slice(2);
 let repo = process.cwd(), base = 'HEAD', seeds = [], only = null;

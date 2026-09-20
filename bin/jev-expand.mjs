@@ -8,7 +8,7 @@
 // line (NDJSON). Pipes into jev-judge.
 import { readStdinJson, asArray, writeJsonl, fail, readFileSafe } from '../lib/io.mjs';
 import { withId } from '../lib/graph.mjs';
-import { loadIgnores, grepSymbol, coChangedFiles, configReferences, fileExcerpt, enclosingScope } from '../lib/search.mjs';
+import { loadIgnores, grepSymbol, coChangedFiles, configReferences, fileExcerpt } from '../lib/search.mjs';
 import path from 'node:path';
 
 const args = process.argv.slice(2);
@@ -26,6 +26,7 @@ for (let i = 0; i < args.length; i++) {
 
 const input = await readStdinJson();
 if (!input) process.exit(0); // empty pipe in: empty pipe out
+const inputLen = asArray(input).length;
 const isIgnored = loadIgnores(repo);
 const children = [];
 const seen = new Set(); // batch-level dedupe on canonical identity
@@ -35,7 +36,7 @@ for (const node of asArray(input)) {
 
   const emit = (file, symbol, scope, relation, evidence, priority, codeLine, line) => {
     if (!file || isIgnored(file) || file === node.file && symbol === node.symbol && scope === node.scope) return;
-    if (children.length >= maxChildren * asArray(input).length) return;
+    if (children.length >= maxChildren * inputLen) return;
     const id = `${file}::${scope || '<file>'}::${symbol || '?'}`;
     if (seen.has(id)) return;
     seen.add(id);
@@ -58,8 +59,10 @@ for (const node of asArray(input)) {
   if (kinds.includes('symbol-refs') && node.symbol && node.symbol !== '?') {
     for (const hit of grepSymbol(repo, node.symbol, isIgnored)) {
       if (hit.file === node.file) continue;
-      const text = readFileSafe(path.join(repo, hit.file)) || '';
-      emit(hit.file, node.symbol, hit.scope || enclosingScope(text, hit.line),
+      // hit.scope is always set: grepRegex fills it via enclosingScope on
+      // every hit, and enclosingScope returns a name or '<file>' (never
+      // falsy), so no fallback is needed here.
+      emit(hit.file, node.symbol, hit.scope,
         'symbol-refs', `${node.symbol} referenced at ${hit.file}:${hit.line}`, 0.8, hit.text, hit.line);
     }
   }
@@ -84,4 +87,4 @@ for (const node of asArray(input)) {
   }
 }
 
-writeJsonl(children.slice(0, maxChildren * asArray(input).length));
+writeJsonl(children.slice(0, maxChildren * inputLen));

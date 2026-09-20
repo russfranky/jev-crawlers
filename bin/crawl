@@ -3,7 +3,10 @@
 //
 //   jev-seed -> [ frontier -> jev-judge -> jev-expand ]* -> jev-verify -> jev-report
 //
-// Stages are dumb filters speaking JSON lines; this script owns recursion
+// Stages are dumb filters speaking JSON lines; this script owns the
+// recursion: it runs the seed/judge/expand loop against its own frontier,
+// visited set, and budgets, then hands the surviving candidates to
+// jev-verify and jev-report.
 //
 // The driver keeps: canonical node identity (file+symbol+scope), a visited
 // set, and a priority frontier. Termination: budget spent, depth cap,
@@ -13,7 +16,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { Frontier, childPriority, nodeId, withId } from '../lib/graph.mjs';
+import { Frontier, childPriority, withId } from '../lib/graph.mjs';
 import { fileExcerpt } from '../lib/search.mjs';
 import { attachEvidence } from '../lib/evidence.mjs';
 import { fail } from '../lib/io.mjs';
