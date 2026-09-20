@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-// crawl-report — render findings as Markdown and JSON.
-// Reads crawl-verify output from stdin. Never calls an unverified lead a
+// jev-report — render findings as Markdown and JSON.
+// Reads jev-verify output from stdin. Never calls an unverified lead a
 // bug. Writes Markdown to stdout (or --out FILE) and a JSON summary to
 // stderr... no: JSON goes to --json FILE when given. Keep it simple.
 import fs from 'node:fs';
@@ -14,14 +14,13 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--json' && args[i + 1]) jsonFile = args[++i];
   else if (a === '--stats' && args[i + 1]) stats = JSON.parse(args[++i]);
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-report [--out report.md] [--json report.json] [--stats \'{...}\'] < verified.json');
+    console.log('usage: jev-report [--out report.md] [--json report.json] [--stats \'{...}\'] < verified.json');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
 
 const input = await readStdinJson();
-if (!input) fail('no verified findings on stdin', 64);
-const findings = asArray(input);
+const findings = asArray(input); // empty stdin: zero findings, still a valid report
 
 const bugs = findings.filter((f) => f.status === 'bug');
 const leads = findings.filter((f) => f.status === 'unverified-lead');

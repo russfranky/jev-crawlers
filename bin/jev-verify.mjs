@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-// crawl-verify — separate verifier step between judge and report.
+// jev-verify — separate verifier step between judge and report.
+//
+// STANDALONE: this tool is a dependency-light gate for ANY Jev pipeline,
+// not just the crawler. Pipe { node, judgment } records in (NDJSON or a
+// JSON array) and it writes findings out, one per line. It needs only
+// node >= 20 and lib/io.mjs; it makes no Jev calls and holds no key.
+// Example: some-other-pipeline | node bin/jev-verify --repo /path/to/code
 //
 // The judge can only say "this looks like a bug". The verifier assembles a
 // falsifiable artifact for each report candidate and checks that it is
@@ -29,11 +35,12 @@
 // confirms the claim cites real code. Running reproducers is on the
 // roadmap. The report labels this honestly.
 //
-// Reads [{ node, judgment }] from stdin. Writes findings:
+// Reads { node, judgment } records from stdin (NDJSON or a JSON array).
+// Writes findings, one per line (NDJSON):
 //   { node, judgment, status: "bug" | "unverified-lead" | "escalated",
 //     artifact: { kind, text } | null }
 import path from 'node:path';
-import { readStdinJson, asArray, writeJson, fail, readFileSafe } from '../lib/io.mjs';
+import { readStdinJson, asArray, writeJsonl, fail, readFileSafe } from '../lib/io.mjs';
 
 const args = process.argv.slice(2);
 let riskFloor = 1, repo = process.cwd();
@@ -42,13 +49,13 @@ for (let i = 0; i < args.length; i++) {
   if (a === '--risk-floor' && args[i + 1]) riskFloor = parseFloat(args[++i]);
   else if (a === '--repo' && args[i + 1]) repo = args[++i];
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-verify [--risk-floor 1] [--repo PATH] < judged.json');
+    console.log('usage: jev-verify [--risk-floor 1] [--repo PATH] < judged.json');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
 
 const input = await readStdinJson();
-if (!input) fail('no judged nodes on stdin', 64);
+if (!input) process.exit(0); // empty pipe in: empty pipe out
 
 const findings = [];
 for (const { node, judgment } of asArray(input)) {
@@ -203,4 +210,4 @@ function groundedGaps(judgment, evidenceLocs, failedItems, confirmed) {
   return gaps;
 }
 
-writeJson(findings);
+writeJsonl(findings);

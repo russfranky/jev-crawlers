@@ -13,16 +13,16 @@ A crawl explores a graph of **nodes**. One node is one lead: a file, a symbol, a
 The primitives are interfaces. The driver (`bin/crawl`) owns recursion.
 
 ```
-crawl-seed | crawl-expand | crawl-judge | crawl-verify | crawl-report
+jev-seed --repo X | jev-expand --repo X | jev-judge | jev-verify --repo X | jev-report
 ```
 
 | Command | Input | Output | Model calls |
 |---|---|---|---|
-| crawl-seed | flags | nodes | none |
-| crawl-expand | node(s) | child nodes | none |
-| crawl-judge | node(s) | {node, judgment} | 1 Jev call per node |
-| crawl-verify | judged nodes | findings | none |
-| crawl-report | findings | markdown + JSON | none |
+| jev-seed | flags | seed nodes, one per line (NDJSON) | none |
+| jev-expand | node(s) | child nodes, one per line | none |
+| jev-judge | node(s) | {node, judgment}, one per line | 1 Jev call per node |
+| jev-verify | judged nodes | findings, one per line | none |
+| jev-report | findings | markdown + JSON | none |
 
 Gates live outside the crawler. Budget, depth, and the diminishing-returns gate are driver flags. Escalation policy is in the question set. The repo never holds a key; the judge reads `AI_GATEWAY_API_KEY` from the environment and fails closed without it.
 
@@ -39,7 +39,7 @@ The driver stops on the first of:
 
 ## Expansion (mechanical)
 
-`crawl-expand` never calls a model. For each node it emits:
+`jev-expand` never calls a model. For each node it emits:
 
 - **symbol-refs**: other files that mention the symbol (callers, importers).
 - **co-change**: files that changed with this file in at least 2 of the last 60 commits.
@@ -49,7 +49,7 @@ AST and language-server expansion is roadmap. The current text search is honest 
 
 ## Judgment and context packing
 
-`crawl-judge` sends one packed state per node to Jev (`typesafe-ai/jev` via the AI Gateway). Truncation order is explicit; nothing drops silently:
+`jev-judge` sends one packed state per node to Jev (`typesafe-ai/jev` via the AI Gateway). Truncation order is explicit; nothing drops silently:
 
 1. Repo metadata drops first (informational only).
 2. Evidence beyond the first 8 entries drops next.
@@ -77,7 +77,7 @@ probability as a ranking signal.
 
 ## Verification
 
-`crawl-verify` is the separate verifier the spec requires. For each report candidate it assembles a falsifiable artifact (reproducer sketch: location, seed, wrong behavior, evidence, code under test, and how to falsify it) and checks grounding:
+`jev-verify` is the separate verifier the spec requires. For each report candidate it assembles a falsifiable artifact (reproducer sketch: location, seed, wrong behavior, evidence, code under test, and how to falsify it) and checks grounding:
 
 - the artifact names the real file, symbol, and line;
 - the evidence names an input or trigger and the wrong behavior;

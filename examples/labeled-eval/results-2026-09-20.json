@@ -1,0 +1,181 @@
+{
+  "summary": {
+    "n": 12,
+    "bugs": 6,
+    "benign": 6,
+    "riskBands": {
+      "bug": {
+        "high": 3,
+        "mid": 3,
+        "low": 0
+      },
+      "benign": {
+        "high": 0,
+        "mid": 0,
+        "low": 6
+      }
+    },
+    "meanRisk": {
+      "bug": 2.18,
+      "benign": 0.09
+    },
+    "bugLikelyConcordance": 1,
+    "routing": {
+      "bug": {
+        "file-report": 3,
+        "escalate-owner": 3
+      },
+      "benign": {
+        "auto-prune": 6
+      }
+    },
+    "meanLatencyMs": 348,
+    "estCostUsd": 0.00085
+  },
+  "rows": [
+    {
+      "id": "bugs.js::totalBroken",
+      "truth": "bug",
+      "bugType": "off-by-one",
+      "verdict": "report",
+      "risk": 1.74,
+      "riskBand": "mid",
+      "bugLikely": 0.89,
+      "routing": "file-report",
+      "latencyMs": 810,
+      "estCost": 0.00007224
+    },
+    {
+      "id": "bugs.js::zipOf",
+      "truth": "bug",
+      "bugType": "nil-deref",
+      "verdict": "report",
+      "risk": 1.55,
+      "riskBand": "mid",
+      "bugLikely": 0.87,
+      "routing": "file-report",
+      "latencyMs": 354,
+      "estCost": 0.000072072
+    },
+    {
+      "id": "bugs.js::applyDiscount",
+      "truth": "bug",
+      "bugType": "injection",
+      "verdict": "report",
+      "risk": 2.78,
+      "riskBand": "high",
+      "bugLikely": 0.73,
+      "routing": "escalate-owner",
+      "latencyMs": 236,
+      "estCost": 0.00007224
+    },
+    {
+      "id": "bugs.js::STRIPE_KEY",
+      "truth": "bug",
+      "bugType": "hardcoded-secret",
+      "verdict": "report",
+      "risk": 2.9,
+      "riskBand": "high",
+      "bugLikely": 0.83,
+      "routing": "escalate-owner",
+      "latencyMs": 355,
+      "estCost": 0.000072156
+    },
+    {
+      "id": "bugs.js::parseQty",
+      "truth": "bug",
+      "bugType": "radix",
+      "verdict": "report",
+      "risk": 1.58,
+      "riskBand": "mid",
+      "bugLikely": 0.83,
+      "routing": "file-report",
+      "latencyMs": 318,
+      "estCost": 0.000072072
+    },
+    {
+      "id": "bugs.js::chargeAmount",
+      "truth": "bug",
+      "bugType": "float-money",
+      "verdict": "report",
+      "risk": 2.54,
+      "riskBand": "high",
+      "bugLikely": 0.81,
+      "routing": "escalate-owner",
+      "latencyMs": 306,
+      "estCost": 0.00007224
+    },
+    {
+      "id": "benign.js::clamp",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.02,
+      "riskBand": "low",
+      "bugLikely": 0.05,
+      "routing": "auto-prune",
+      "latencyMs": 303,
+      "estCost": 0.000069552
+    },
+    {
+      "id": "benign.js::newCart",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.01,
+      "riskBand": "low",
+      "bugLikely": 0.06,
+      "routing": "auto-prune",
+      "latencyMs": 291,
+      "estCost": 0.000069594
+    },
+    {
+      "id": "benign.js::zipOfSafe",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.05,
+      "riskBand": "low",
+      "bugLikely": 0.06,
+      "routing": "auto-prune",
+      "latencyMs": 315,
+      "estCost": 0.000069762
+    },
+    {
+      "id": "benign.js::addItemSafe",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.08,
+      "riskBand": "low",
+      "bugLikely": 0.06,
+      "routing": "auto-prune",
+      "latencyMs": 364,
+      "estCost": 0.000069846
+    },
+    {
+      "id": "benign.js::totalFixed",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.35,
+      "riskBand": "low",
+      "bugLikely": 0.1,
+      "routing": "auto-prune",
+      "latencyMs": 269,
+      "estCost": 0.000069762
+    },
+    {
+      "id": "benign.js::VERSION",
+      "truth": "benign",
+      "bugType": null,
+      "verdict": "prune",
+      "risk": 0.02,
+      "riskBand": "low",
+      "bugLikely": 0.06,
+      "routing": "auto-prune",
+      "latencyMs": 255,
+      "estCost": 0.00006951
+    }
+  ]
+}

@@ -567,3 +567,41 @@ Recorded as M24. Honest limit: the pipeline's 0 candidates came from
 triage of the known-broken PWA surface, not by the crawler. The crawler
 is a triage assistant, not an autonomous finder — this run is more
 evidence for that.
+
+## 20. Unix rebuild: pipe re-measurement (2026-09-20)
+
+The monolith split into unix tools: `bin/crawl-seed.mjs` ->
+`bin/jev-seed.mjs`, `crawl-judge` -> `jev-judge`, `crawl-verify` ->
+`jev-verify`, `crawl-expand` -> `jev-expand`, `crawl-report` ->
+`jev-report`, and the driver `bin/crawl.mjs` -> `bin/crawl` (thin
+orchestrator over a real NDJSON pipe; stages are dumb filters, all
+recursion/budget/termination logic lives in `crawl`). No pattern,
+verdict-store, or verifier-semantics changes — only names and framing.
+The three eval harnesses were rewired to the new names and NDJSON
+parsing.
+
+**Verifier eval re-run** (`examples/verifier-eval`, real Jev calls on
+the 12-node fixture, `jev-seed | jev-judge | jev-verify`):
+
+- V-attached x R-forced (primary): accepted bugs **6/6**, accepted
+  benign **0/6**, precision 1, recall 1. Reproduces M20 exactly.
+- V-attached x R-natural (production routing): accepted bugs **3/6**,
+  escalated 3/6, accepted benign 0/6, precision 1, recall 0.5. M20
+  measured 2/6 + 4/6 escalated — the one-node difference is judge
+  routing variance between runs, not verifier drift (the verifier
+  accepted every file-report it was given in both runs).
+- V-stripped x R-forced (control): accepted **0/12**, all demoted.
+  Reproduces M20 exactly — the verifier still fails closed without
+  evidence.
+
+**Labeled eval re-run** (`examples/labeled-eval`, real Jev calls, 12
+nodes): bugs 3 high / 3 mid risk bands, benign 6/6 low; mean risk bug
+2.18 vs benign 0.09; bug_likely concordance 1.0; routing bugs 3
+file-report + 3 escalate-owner, benign 6/6 auto-prune; $0.00085 total,
+348 ms mean latency. The FP negative examples (which include fixture
+entries) did not break the fixture judgments.
+
+Recorded as M25. Honest limit: the rebuild is proven not to have
+changed verifier semantics on the fixture (n=12); the natural-routing
+variant's run-to-run wobble of one node is judge variance, and it is
+why the verifier's numbers are reported on the forced path.

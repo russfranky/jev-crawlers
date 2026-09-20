@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-// crawl — the stateful driver. It owns recursion; the four primitives are
-// interfaces, not the architecture.
+// crawl — thin orchestrator over the unix pipe.
 //
-//   crawl-seed -> [ frontier -> judge -> expand ]* -> crawl-verify -> crawl-report
+//   jev-seed -> [ frontier -> jev-judge -> jev-expand ]* -> jev-verify -> jev-report
+//
+// Stages are dumb filters speaking JSON lines; this script owns recursion
 //
 // The driver keeps: canonical node identity (file+symbol+scope), a visited
 // set, and a priority frontier. Termination: budget spent, depth cap,
@@ -47,13 +48,17 @@ if (!seedKinds.length) seedKinds = ['diff', 'todo', 'patterns'];
 repo = path.resolve(repo); // children run with cwd=repo; keep the path absolute
 
 const t0 = Date.now();
-const run = (bin, binArgs, stdinJson) => {
+// A real pipe: spawn the stage, write records as JSON lines on its stdin,
+// read JSON lines back from its stdout. Stages are dumb filters (one tool,
+// one job); all orchestration — frontier, budget, termination — lives here.
+const pipe = (bin, binArgs, recordsIn) => {
+  const rows = recordsIn == null ? [] : Array.isArray(recordsIn) ? recordsIn : [recordsIn];
   const res = execFileSync('node', [path.join(HERE, bin), ...binArgs], {
     cwd: repo, encoding: 'utf8', env: process.env,
-    input: stdinJson != null ? JSON.stringify(stdinJson) : undefined,
+    input: rows.map((r) => JSON.stringify(r)).join('\n') + '\n',
     stdio: ['pipe', 'pipe', 'inherit'], maxBuffer: 64 * 1024 * 1024,
   });
-  return JSON.parse(res);
+  return res.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 };
 
 // 1. Seed.
@@ -61,8 +66,8 @@ const seedArgs = ['--repo', repo, '--base', base, ...(only ? ['--only', only] : 
 for (const s of seedKinds) seedArgs.push('--' + s);
 let seeds;
 try {
-  seeds = run('crawl-seed.mjs', seedArgs, null);
-} catch (e) { fail(`crawl-seed failed: ${e.message}`, 2); }
+  seeds = pipe('jev-seed.mjs', seedArgs, null);
+} catch (e) { fail(`jev-seed failed: ${e.message}`, 2); }
 for (const s of seeds) {
   withId(s);
   const { excerpt, symbolLine } = fileExcerpt(repo, s.file, 1, 30);
@@ -73,7 +78,7 @@ const frontier = new Frontier();
 const visited = new Set();
 for (const s of seeds) frontier.push(s);
 
-const candidates = [];      // file-report | needs-artifact | escalate-owner | review-queue, for crawl-verify
+const candidates = [];      // file-report | needs-artifact | escalate-owner | review-queue, for jev-verify
 let judged = 0, pruned = 0, expanded = 0, depthCapped = 0;
 let estCostUsd = 0, totalLatencyMs = 0;
 const recent = [];          // last judgments, for the diminishing-returns gate
@@ -101,7 +106,7 @@ while (frontier.size > 0) {
     judgment = stubJudgment(node);
   } else {
     try {
-      const [res] = run('crawl-judge.mjs', [], node);
+      const [res] = pipe('jev-judge.mjs', [], node);
       judgment = res.judgment;
     } catch (e) {
       process.stderr.write(`crawl: judge failed on ${node.id}, treating as review: ${e.message.slice(0, 120)}\n`);
@@ -127,7 +132,7 @@ while (frontier.size > 0) {
     if ((node.depth ?? 0) >= maxDepth) continue;
     let children = [];
     try {
-      children = run('crawl-expand.mjs', ['--repo', repo, '--max-children', String(maxChildren)], node);
+      children = pipe('jev-expand.mjs', ['--repo', repo, '--max-children', String(maxChildren)], node);
     } catch (e) {
       process.stderr.write(`crawl: expand failed on ${node.id}: ${e.message.slice(0, 120)}\n`);
     }
@@ -141,7 +146,7 @@ while (frontier.size > 0) {
     pruned++;
   } else {
     // Before verification, attach the node's own cited code locations into
-    // the judgment record (lib/evidence.mjs), so crawl-verify grounds the
+    // the judgment record (lib/evidence.mjs), so jev-verify grounds the
     // claim against judge artifact + node evidence + disk.
     judgment.attachedEvidence = attachEvidence(node);
     candidates.push({ node, judgment }); // file-report | needs-artifact | escalate-owner
@@ -171,19 +176,19 @@ const stats = {
 let verified = [];
 if (candidates.length) {
   try {
-    verified = run('crawl-verify.mjs', [], candidates);
-  } catch (e) { fail(`crawl-verify failed: ${e.message}`, 2); }
+    verified = pipe('jev-verify.mjs', [], candidates);
+  } catch (e) { fail(`jev-verify failed: ${e.message}`, 2); }
 }
 let report = '';
 try {
   const reportArgs = ['--stats', JSON.stringify(stats)];
   if (outFile) reportArgs.push('--out', outFile);
   if (jsonFile) reportArgs.push('--json', jsonFile);
-  report = execFileSync('node', [path.join(HERE, 'crawl-report.mjs'), ...reportArgs], {
+  report = execFileSync('node', [path.join(HERE, 'jev-report.mjs'), ...reportArgs], {
     cwd: repo, encoding: 'utf8', env: process.env,
-    input: JSON.stringify(verified), stdio: ['pipe', 'pipe', 'inherit'], maxBuffer: 64 * 1024 * 1024,
+    input: verified.map((v) => JSON.stringify(v)).join('\n') + '\n', stdio: ['pipe', 'pipe', 'inherit'], maxBuffer: 64 * 1024 * 1024,
   });
-} catch (e) { fail(`crawl-report failed: ${e.message}`, 2); }
+} catch (e) { fail(`jev-report failed: ${e.message}`, 2); }
 
 if (!outFile) process.stdout.write(report);
 if (statsJson) process.stderr.write(JSON.stringify(stats) + '\n');

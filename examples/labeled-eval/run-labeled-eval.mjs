@@ -62,14 +62,14 @@ for (const file of ['bugs.js', 'benign.js']) {
 }
 console.error(`built ${nodes.length} nodes`);
 
-const args = [path.join(ROOT, 'bin', 'crawl-judge.mjs')];
+const args = [path.join(ROOT, 'bin', 'jev-judge.mjs')];
 if (dryRun) args.push('--dry-run');
 const res = spawnSync('node', args, { input: JSON.stringify(nodes), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 if (res.status !== 0) {
   console.error('judge failed:', res.stderr?.slice(0, 2000));
   process.exit(1);
 }
-const judged = JSON.parse(res.stdout);
+const judged = res.stdout.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 
 // Metrics against ground truth (judge never saw labels).
 const rows = judged.map((j) => {

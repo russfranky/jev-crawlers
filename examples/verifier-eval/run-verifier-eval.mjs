@@ -5,21 +5,21 @@
 // real pipeline evidence on a human-confirmed bug. The 12 labeled nodes come
 // from examples/labeled-eval (ground truth by construction; labels never
 // enter the node state). Evidence strings are byte-identical to real
-// crawl-seed output on the fixture (mapped to symbols by line range).
+// jev-seed output on the fixture (mapped to symbols by line range).
 //
 // Design (verifier isolation):
 //   - The judge runs for real on all 12 nodes (labels withheld).
 //   - The verifier is deterministic (no Jev calls), so every variant is free.
 //   - Primary measurement (V-attached x R-forced): the full production
 //     chain — every node carries the seeder's real structured evidence
-//     items verbatim, the driver's attach step (bin/crawl.mjs, via
+//     items verbatim, the driver's attach step (bin/crawl, via
 //     lib/evidence.mjs) attaches the node's own cited code locations into
 //     the judgment record, and routing is forced to file-report while
 //     keeping the judge's REAL answers. This isolates the verifier: given
 //     a bug claim with everything the pipeline knows, does its
 //     grounded/demoted decision track ground truth?
 //   - Context: R-natural (the judge's real routing; non-file-report nodes
-//     are escalated or skipped by crawl-verify, as in production).
+//     are escalated or skipped by jev-verify, as in production).
 //   - Control: V-stripped x R-forced (evidence removed; the verifier must
 //     demote everything, proving it requires real evidence).
 //
@@ -67,12 +67,12 @@ function symbolsOf(file) {
   return { src, syms };
 }
 
-// Real seeder evidence: run the shipped crawl-seed on the fixture and use
+// Real seeder evidence: run the shipped jev-seed on the fixture and use
 // its structured evidence items verbatim (byte-identical by construction).
-const seedRes = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-seed.mjs'),
+const seedRes = spawnSync('node', [path.join(ROOT, 'bin', 'jev-seed.mjs'),
   '--repo', FIXTURE, '--patterns', '--todo'], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-if (seedRes.status !== 0) { console.error('crawl-seed failed:', seedRes.stderr?.slice(0, 1000)); process.exit(1); }
-const seeds = JSON.parse(seedRes.stdout);
+if (seedRes.status !== 0) { console.error('jev-seed failed:', seedRes.stderr?.slice(0, 1000)); process.exit(1); }
+const seeds = seedRes.stdout.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 console.error(`real seeder fired ${seeds.length} seeds on the fixture`);
 
 // Build per-symbol nodes; attach the seeder's real structured evidence
@@ -106,17 +106,17 @@ const withEv = nodes.filter((n) => n.evidence.length).length;
 console.error(`nodes with real seeder evidence attached: ${withEv}/${nodes.length}`);
 
 // Judge all 12 for real (labels withheld from the judge).
-const judgeRes = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-judge.mjs')],
+const judgeRes = spawnSync('node', [path.join(ROOT, 'bin', 'jev-judge.mjs')],
   { input: JSON.stringify(nodes), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
 if (judgeRes.status !== 0) { console.error('judge failed:', judgeRes.stderr?.slice(0, 2000)); process.exit(1); }
-const judged = JSON.parse(judgeRes.stdout);
+const judged = judgeRes.stdout.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 console.error(`judged ${judged.length} nodes`);
 
 function runVerify(pairs) {
-  const res = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-verify.mjs'), '--repo', ROOT],
+  const res = spawnSync('node', [path.join(ROOT, 'bin', 'jev-verify.mjs'), '--repo', ROOT],
     { input: JSON.stringify(pairs), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (res.status !== 0) { console.error('verify failed:', res.stderr?.slice(0, 1000)); process.exit(1); }
-  return JSON.parse(res.stdout);
+  return res.stdout.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 }
 
 const truthOf = (node) => LABELS[`${path.basename(node.file)}::${node.symbol}`].label;
@@ -146,7 +146,7 @@ function metrics(findings, name) {
   };
 }
 
-// Mirror the driver's attach step (bin/crawl.mjs): before verification,
+// Mirror the driver's attach step (bin/crawl): before verification,
 // the driver attaches the node's own cited code locations
 // (lib/evidence.mjs) into the judgment record, so the verifier grounds
 // against judge artifact + node evidence + disk.

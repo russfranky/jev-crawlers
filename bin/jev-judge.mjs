@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// crawl-judge — one Jev judgment per node.
-// Reads a node (or array of nodes) from stdin, writes a JSON array of
-// { node, judgment } objects. The judgment carries the typed answers
+// jev-judge — one Jev judgment per node.
+// Reads nodes (NDJSON or a JSON array) from stdin, writes one
+// { node, judgment } object per line (NDJSON). The judgment carries the
 // (verdict choice, bug_likely boolean, risk score, artifact_stated
 // boolean), the policy routing, and latency/usage. Routing is driven by
 // the risk score bands; no route is gated on a raw boolean.
@@ -12,7 +12,7 @@
 // (for pipeline tests; never for real verdicts).
 // --show-metadata includes providerMetadata (planningReasoning, Jev
 // confidence) so operators can verify ZDR routing on their own plan.
-import { readStdinJson, asArray, writeJson, fail } from '../lib/io.mjs';
+import { readStdinJson, asArray, writeJsonl, fail } from '../lib/io.mjs';
 import { loadConfig, judgeNode } from '../lib/jev.mjs';
 
 const args = process.argv.slice(2);
@@ -25,7 +25,7 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--dry-run') dryRun = true;
   else if (a === '--show-metadata') showMetadata = true;
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-judge [--config PATH] [--set NAME] [--max-state-chars N] [--dry-run] [--show-metadata] < node.json');
+    console.log('usage: jev-judge [--config PATH] [--set NAME] [--max-state-chars N] [--dry-run] [--show-metadata] < node.json');
     console.log('  --show-metadata: include providerMetadata (planningReasoning, Jev confidence) in the output.');
     console.log('    Use it to verify zero-data-retention routing on your plan before sending private code.');
     process.exit(0);
@@ -33,7 +33,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 const input = await readStdinJson();
-if (!input) fail('no node on stdin', 64);
+if (!input) process.exit(0); // empty pipe in: empty pipe out
 
 if (dryRun) {
   const out = asArray(input).map((node) => ({
@@ -51,7 +51,7 @@ if (dryRun) {
       latencyMs: 0,
     },
   }));
-  writeJson(out);
+  writeJsonl(out);
   process.exit(0);
 }
 
@@ -70,10 +70,10 @@ for (const node of asArray(input)) {
     if (!showMetadata) delete judgment.providerMetadata;
     out.push({ node, judgment });
   } catch (e) {
-    writeJson({ set: setName, status: set.status || 'active', routing: 'review', error: String(e.message || e).slice(0, 300) });
-    process.stderr.write(`crawl-judge ERROR: ${String(e.message || e).slice(0, 200)} -> treat as review\n`);
+    writeJsonl({ set: setName, status: set.status || 'active', routing: 'review', error: String(e.message || e).slice(0, 300) });
+    process.stderr.write(`jev-judge ERROR: ${String(e.message || e).slice(0, 200)} -> treat as review\n`);
     process.exit(3);
   }
 }
-writeJson(out);
+writeJsonl(out);
 process.exit(0);

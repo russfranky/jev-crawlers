@@ -436,3 +436,17 @@ pattern matches `RegExp.prototype.exec` — 5 FP verdicts added, seeder
 suppresses them (40 -> 35 seeds). /chat-stream has no rate limiting
 (unauthenticated by design); reported as a hardening gap, not fixed —
 needs owner product decisions.
+
+**M25. Unix rebuild: verifier semantics unchanged (measured
+2026-09-20).** The pipeline is now five stage tools speaking NDJSON
+(`jev-seed`, `jev-expand`, `jev-judge`, `jev-verify`, `jev-report`)
+plus the thin `bin/crawl` orchestrator; no pattern, verdict-store, or
+verifier-semantics changes. Re-measured on the 12-node fixture:
+verifier forced path 6/6 bugs accepted, 0/6 benign (precision 1, recall
+1), evidence-stripped control 0/12 — both identical to M20. Natural
+routing measured 3/6 accepted + 3/6 escalated vs M20's 2/6 + 4/6: judge
+routing variance of one node between runs, not verifier drift.
+`jev-verify` is documented as a standalone gate for any Jev pipeline
+(README has a ThatMgmt loop-gates usage example); it needs only node
+20+ and lib/io.mjs. Limit: the equivalence proof is n=12 on the
+fixture; nothing about real-code behavior was re-measured here.

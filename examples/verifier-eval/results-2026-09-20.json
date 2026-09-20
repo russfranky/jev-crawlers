@@ -1,0 +1,310 @@
+{
+  "date": "2026-09-20",
+  "n": 12,
+  "bugs": 6,
+  "benign": 6,
+  "judgeRoutings": {
+    "file-report": 3,
+    "escalate-owner": 3,
+    "auto-prune": 6
+  },
+  "judgeRoutingsByClass": {
+    "bug": [
+      "bugs.js::totalBroken=file-report",
+      "bugs.js::zipOf=file-report",
+      "bugs.js::applyDiscount=escalate-owner",
+      "bugs.js::STRIPE_KEY=escalate-owner",
+      "bugs.js::parseQty=file-report",
+      "bugs.js::chargeAmount=escalate-owner"
+    ],
+    "benign": [
+      "benign.js::clamp=auto-prune",
+      "benign.js::newCart=auto-prune",
+      "benign.js::zipOfSafe=auto-prune",
+      "benign.js::addItemSafe=auto-prune",
+      "benign.js::totalFixed=auto-prune",
+      "benign.js::VERSION=auto-prune"
+    ]
+  },
+  "variants": [
+    {
+      "variant": "V-attached x R-forced (primary)",
+      "n": 12,
+      "acceptedBugs": 6,
+      "acceptedBenign": 0,
+      "demotedBugs": 0,
+      "demotedBenign": 6,
+      "escalatedOrSkipped": 0,
+      "precision": 1,
+      "recall": 1,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.75,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.6,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.82,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 4 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.89,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.6,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.45,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "benign.js::clamp",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.03,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.03 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.04, ranking signal)"
+        },
+        {
+          "id": "benign.js::newCart",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.01,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.01 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.06, ranking signal)"
+        },
+        {
+          "id": "benign.js::zipOfSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.04,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.04 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.06, ranking signal)"
+        },
+        {
+          "id": "benign.js::addItemSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.07,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.07, ranking signal)"
+        },
+        {
+          "id": "benign.js::totalFixed",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.4,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.4 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
+        },
+        {
+          "id": "benign.js::VERSION",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.02,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.02 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
+        }
+      ]
+    },
+    {
+      "variant": "V-attached x R-natural (production routing)",
+      "n": 6,
+      "acceptedBugs": 3,
+      "acceptedBenign": 0,
+      "demotedBugs": 0,
+      "demotedBenign": 0,
+      "escalatedOrSkipped": 3,
+      "precision": 1,
+      "recall": 0.5,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.75,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.6,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.82,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.89,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.6,
+          "status": "bug",
+          "note": "artifact grounded: claim cites 2 on-disk code location(s); reproducer not executed (v0)"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "escalate-owner",
+          "risk": 2.45,
+          "status": "escalated",
+          "note": "serious blast radius or ambiguous evidence; human decides"
+        }
+      ]
+    },
+    {
+      "variant": "V-stripped x R-forced (control)",
+      "n": 12,
+      "acceptedBugs": 0,
+      "acceptedBenign": 0,
+      "demotedBugs": 6,
+      "demotedBenign": 6,
+      "escalatedOrSkipped": 0,
+      "precision": null,
+      "recall": 0,
+      "rows": [
+        {
+          "id": "bugs.js::totalBroken",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.75,
+          "status": "unverified-lead",
+          "note": "demoted: evidence cites no code location (file:line)"
+        },
+        {
+          "id": "bugs.js::zipOf",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.6,
+          "status": "unverified-lead",
+          "note": "demoted: evidence cites no code location (file:line)"
+        },
+        {
+          "id": "bugs.js::applyDiscount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.82,
+          "status": "unverified-lead",
+          "note": "demoted: evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.09, ranking signal)"
+        },
+        {
+          "id": "bugs.js::STRIPE_KEY",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.89,
+          "status": "unverified-lead",
+          "note": "demoted: evidence cites no code location (file:line)"
+        },
+        {
+          "id": "bugs.js::parseQty",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 1.6,
+          "status": "unverified-lead",
+          "note": "demoted: evidence cites no code location (file:line)"
+        },
+        {
+          "id": "bugs.js::chargeAmount",
+          "truth": "bug",
+          "routingIn": "file-report",
+          "risk": 2.45,
+          "status": "unverified-lead",
+          "note": "demoted: evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.22, ranking signal)"
+        },
+        {
+          "id": "benign.js::clamp",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.03,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.03 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.04, ranking signal)"
+        },
+        {
+          "id": "benign.js::newCart",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.01,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.01 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.06, ranking signal)"
+        },
+        {
+          "id": "benign.js::zipOfSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.04,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.04 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.06, ranking signal)"
+        },
+        {
+          "id": "benign.js::addItemSafe",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.07,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.07 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.07, ranking signal)"
+        },
+        {
+          "id": "benign.js::totalFixed",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.4,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.4 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
+        },
+        {
+          "id": "benign.js::VERSION",
+          "truth": "benign",
+          "routingIn": "file-report",
+          "risk": 0.02,
+          "status": "unverified-lead",
+          "note": "demoted: risk score 0.02 below floor 1 (ranking band, not a bug probability); judge stated no bug claim (verdict=prune); evidence cites no code location (file:line); judge stated no falsifiable artifact (artifact_stated P=0.05, ranking signal)"
+        }
+      ]
+    }
+  ]
+}

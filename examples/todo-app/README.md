@@ -17,5 +17,5 @@ git init && git add -A && git commit -m "initial cart"
 Live test (needs `AI_GATEWAY_API_KEY`):
 
 ```sh
-./bin/crawl.mjs --repo examples/todo-app --budget 10 --out /tmp/report.md
+./bin/crawl --repo examples/todo-app --budget 10 --out /tmp/report.md
 ```

@@ -1,29 +1,31 @@
 # jev-crawlers
 
-Recursive bug-discovery crawlers powered by Jev.
+Small unix tools for bug-discovery, powered by Jev. One tool, one job, JSON lines on stdin/stdout, composed with pipes.
 
-AI writes code faster than humans can review it. Linters match patterns. One-shot AI reviewers read a diff once and stop. Few tools follow the lead: they never ask "who else calls this?", "what config changes it?", "where does this input become trusted?" jev-crawlers does, and keeps going until the lead dries up.
+AI writes code faster than humans can review it. Linters match patterns. One-shot AI reviewers read a diff once and stop. Few tools follow the lead: they never ask "who else calls this?", "what config changes it?", "where does this input become trusted?" These tools do, and keep going until the lead dries up.
 
-The trick is cheap judgment. [Jev](https://vercel.com/docs/ai-gateway) (typesafe-ai/jev, via the Vercel AI Gateway) returns typed verdicts, choice, boolean, and score, for about $0.00008 per normal node in our calibration runs. When each judgment costs a fraction of a cent, you can judge every node instead of every scan.
+The trick is cheap judgment. [Jev](https://vercel.com/docs/ai-gateway) (typesafe-ai/jev, via the Vercel AI Gateway) returns typed verdicts, choice, boolean, and score, for about $0.00006 per normal node in our calibration runs. When each judgment costs a fraction of a cent, you can judge every node instead of every scan.
 
-## What is a crawler
+## The tools
 
-A crawler chains small Unix-style commands. JSON goes in, JSON comes out. The commands pipe:
+Each tool reads JSON lines on stdin and writes JSON lines on stdout. They compose with plain shell pipes:
 
 ```
-crawl-seed | crawl-expand | crawl-judge | crawl-verify | crawl-report
+jev-seed --repo X | jev-judge | jev-verify | jev-report
 ```
 
-- **crawl-seed**: emits starting leads. Sources: the current diff, TODO and FIXME comments, and risky patterns (auth, money movement, eval, shell).
-- **crawl-expand**: follows context cues from one lead. It finds symbol references (callers), files that change together in git history, and config files that name the symbol. It is mechanical. No model calls.
-- **crawl-judge**: one Jev call per node. Typed answers: a `verdict` suggestion
+- **jev-seed**: emits starting leads, one per line. Sources: the current diff, TODO and FIXME comments, and risky patterns (auth, money movement, eval, shell). Human false-positive verdicts (`data/fp-verdicts.json`) suppress exact repeats; suppressions log to stderr.
+- **jev-expand**: follows context cues from one lead. It finds symbol references (callers), files that change together in git history, and config files that name the symbol. Mechanical. No model calls.
+- **jev-judge**: one Jev call per node. Typed answers: a `verdict` suggestion
   (expand, report, prune, escalate), a `bug_likely` ranking signal, a `risk`
   score from 0 to 3, and whether a falsifiable artifact is stated. Routing
-  follows the risk bands; no route is gated on a raw boolean.
-- **crawl-verify**: a separate verifier. It builds a falsifiable artifact for each report candidate (reproducer sketch) and checks that the artifact is grounded in real code. Anything that fails is an **unverified lead**, never a bug.
-- **crawl-report**: renders the findings with full evidence chains.
+  follows the risk bands; no route is gated on a raw boolean. Recent
+  human false-positive verdicts ride along as negative examples.
+- **jev-verify**: a separate verifier and the keeper of the set (see below).
+  It builds a falsifiable artifact for each report candidate (reproducer sketch) and checks that the artifact is grounded in real code: every cited file:line must exist on disk with matching content. Fabricated or missing citations fail closed. Anything that fails is an **unverified lead**, never a bug.
+- **jev-report**: renders the findings with full evidence chains.
 
-**crawl** is the stateful driver. It owns recursion: canonical node identity (file, symbol, scope), a visited set, a priority frontier, and four stop rules (budget spent, depth cap, empty frontier, diminishing returns). The limits live outside the crawl primitives as flags and policy: `--budget` caps Jev spend, `--depth` caps recursion, the diminishing-returns gate stops dead crawls, and the question set routes low-confidence or high-blast-radius findings to a human. The crawler explores; the gates decide what it may cost and what reaches a human.
+**crawl** is a thin orchestrator over the pipe. It owns recursion: canonical node identity (file, symbol, scope), a visited set, a priority frontier, and four stop rules (budget spent, depth cap, empty frontier, diminishing returns). The stages stay dumb filters; all orchestration lives here. The limits live outside the tools as flags and policy: `--budget` caps Jev spend, `--depth` caps recursion, the diminishing-returns gate stops dead crawls, and the question set routes low-confidence or high-blast-radius findings to a human.
 
 ## Quickstart
 
@@ -32,20 +34,62 @@ You need Node 20 or newer and a Vercel AI Gateway key. The repo never stores you
 ```sh
 npm install
 export AI_GATEWAY_API_KEY="your-key-here"
-./bin/crawl.mjs --repo /path/to/your/repo --seed diff --budget 40 --out report.md
+./bin/crawl --repo /path/to/your/repo --seed diff --budget 40 --out report.md
 ```
 
-Run one primitive on its own:
+Run the pipe by hand, stage by stage:
 
 ```sh
-./bin/crawl-seed.mjs --repo /path/to/repo --todo \
-  | ./bin/crawl-expand.mjs --repo /path/to/repo \
-  | ./bin/crawl-judge.mjs \
-  | ./bin/crawl-verify.mjs \
-  | ./bin/crawl-report.mjs --out report.md
+./bin/jev-seed.mjs --repo /path/to/repo --todo \
+  | ./bin/jev-expand.mjs --repo /path/to/repo \
+  | ./bin/jev-judge.mjs \
+  | ./bin/jev-verify.mjs --repo /path/to/repo \
+  | ./bin/jev-report.mjs --out report.md
 ```
 
 Copy `.crawlersignore` into the target repo to skip generated and vendored code. It never reads `.env` files.
+
+## jev-verify as a standalone gate
+
+`jev-verify` is deliberately dependency-light: node 20+, one shared
+helper file (`lib/io.mjs`), no Jev calls, no key, no crawler imports. It
+takes `{ node, judgment }` records on stdin — from any pipeline that can
+emit them — and writes findings on stdout, one JSON object per line:
+
+```sh
+some-other-pipeline --format ndjson \
+  | ./bin/jev-verify --repo /path/to/code --risk-floor 1
+```
+
+Each input record needs the shape the verifier grounds against: the
+node's `file`, `symbol`, `excerpt`, and structured `evidence` items with
+`file:line` citations (`{ kind: 'code', file, line, text }`), plus the
+judgment's `routing` and `answers` (`verdict.choice`, `risk.score`,
+`artifact_stated.probability`, `bug_likely.probability`). The verifier
+reads every cited file:line off disk and confirms it exists with
+matching content; a fabricated citation demotes the finding to an
+**unverified lead** by itself. Anything that is not routed
+`file-report` passes through as `escalated` — the verifier never
+invents a bug claim the judge did not make.
+
+Example: gating the ThatMgmt Jev loop. The loop's gates (`ralph-jev`)
+already emit typed judgments per step; piping a gate's output through
+`jev-verify` before acting on a `file-report`-style claim adds the
+evidence-grounding check for free:
+
+```sh
+node libexec/jev-decide.mjs --gate output-verify --format ndjson \
+  | /path/to/jev-crawlers/bin/jev-verify --repo /path/to/thatmgmt --risk-floor 1 \
+  | node -e "let s='';for await (const c of process.stdin) s+=c;
+     for (const l of s.split('\n')) { if (!l.trim()) continue;
+       const f = JSON.parse(l);
+       if (f.status === 'bug') { console.log('GROUNDED:', f.artifact.text.split('\n')[0]); process.exit(0); }
+       if (f.status === 'unverified-lead') { console.log('DEMOTED:', f.note); process.exit(1); } }"
+```
+
+Exit 0 means the claim cites real code; exit 1 means it did not survive
+verification. The gate keeps its own policy; `jev-verify` only answers
+"does this claim cite real code?"
 
 ## Honest limits
 
@@ -81,7 +125,7 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   all 1 attempts support ZDR" with a 200. One observation, not a
   guarantee: per-request ZDR is a Pro/Enterprise feature per Vercel's
   docs, and routing can differ by plan and model. Verify on yours:
-  `./bin/crawl-judge.mjs --show-metadata < node.json` and read
+  `./bin/jev-judge.mjs --show-metadata < node.json` and read
   `providerMetadata.gateway.routing.planningReasoning` before you
   send private code.
 - **Jev cannot see images.** States carry text evidence only.
@@ -104,7 +148,11 @@ Every assumption below is classified and sourced in `docs/ASSUMPTIONS.md`
   the node's own cited code locations before verification), the
   verifier accepted 6/6 bugs and 0/6 benign cases (precision 1.00,
   recall 1.00). With the judge's natural routing, 2/6 bugs are
-  accepted as bugs and 4/6 escalate to a human. Scope: n=12 on a
+  accepted as bugs and 4/6 escalate to a human. Re-measured 2026-09-20
+  after the unix-pipe rebuild (`jev-seed | jev-judge | jev-verify`):
+  forced path still 6/6 and 0/6, evidence-stripped still 0/12;
+  natural routing 3/6 accepted and 3/6 escalated (judge variance of
+  one node between runs). See `docs/EVAL.md` §20. Scope: n=12 on a
   synthetic fixture; the check is falsifiability-grounding, not
   independent bug derivation. Findings say "artifact attached,
   reproducer not executed".

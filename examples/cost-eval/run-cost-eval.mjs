@@ -4,7 +4,7 @@
 // Named experiment from docs/ASSUMPTIONS.md U10: run a 500-node crawl and
 // measure actual input tokens and spend. The only costed operation in the
 // pipeline is the Jev judgment (seed/expand/verify/report are mechanical),
-// so this script runs the REAL seeder and the REAL crawl-judge on N seed
+// so this script runs the REAL seeder and the REAL jev-judge on N seed
 // nodes, in parallel batches (the M14 setup: 6 parallel), and aggregates
 // the gateway-reported usage and marketCost.
 //
@@ -62,10 +62,10 @@ function secretHits(text) {
 
 // 1. Real seeder.
 console.error('seeding...');
-const seedRes = spawnSync('node', [path.join(ROOT, 'bin', 'crawl-seed.mjs'),
+const seedRes = spawnSync('node', [path.join(ROOT, 'bin', 'jev-seed.mjs'),
   '--repo', repo, '--patterns', '--todo'], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
-if (seedRes.status !== 0) { console.error('crawl-seed failed:', seedRes.stderr?.slice(0, 1000)); process.exit(1); }
-let seeds = JSON.parse(seedRes.stdout);
+if (seedRes.status !== 0) { console.error('jev-seed failed:', seedRes.stderr?.slice(0, 1000)); process.exit(1); }
+let seeds = seedRes.stdout.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 console.error(`seeds: ${seeds.length}`);
 
 // 2. Top-N by priority (deterministic tie-break), excerpts like the driver.
@@ -83,11 +83,11 @@ for (const s of picked) {
 }
 console.error(`nodes after secret scan: ${nodes.length} (dropped ${secretDropped} with secret-shaped values)`);
 
-// 3. Judge in parallel batches of K via the real crawl-judge CLI.
+// 3. Judge in parallel batches of K via the real jev-judge CLI.
 function judgeOne(node) {
   return new Promise((resolve) => {
     const t0 = Date.now();
-    const p = spawn('node', [path.join(ROOT, 'bin', 'crawl-judge.mjs')], { stdio: ['pipe', 'pipe', 'pipe'] });
+    const p = spawn('node', [path.join(ROOT, 'bin', 'jev-judge.mjs')], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '', err = '';
     const timer = setTimeout(() => { p.kill('SIGKILL'); resolve({ node, error: 'timeout' }); }, 90000);
     p.stdout.on('data', (d) => { out += d; });
@@ -96,7 +96,7 @@ function judgeOne(node) {
       clearTimeout(timer);
       if (code !== 0) return resolve({ node, error: `exit ${code}: ${err.slice(0, 200)}` });
       try {
-        const [res] = JSON.parse(out);
+        const [res] = out.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
         resolve({ node, judgment: res.judgment, cliMs: Date.now() - t0 });
       } catch (e) { resolve({ node, error: `parse: ${String(e.message).slice(0, 120)}` }); }
     });

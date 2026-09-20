@@ -1,1 +1,36 @@
-{"bin":{"crawl":"bin/crawl.mjs","crawl-expand":"bin/crawl-expand.mjs","crawl-judge":"bin/crawl-judge.mjs","crawl-report":"bin/crawl-report.mjs","crawl-seed":"bin/crawl-seed.mjs","crawl-verify":"bin/crawl-verify.mjs"},"dependencies":{"ai":"^7.0.105"},"description":"Recursive bug-discovery crawlers powered by Jev (typesafe-ai/jev): seed, expand, judge, verify, report.","engines":{"node":">=20"},"keywords":["jev","ai-gateway","bug-detection","code-review","crawler","unix"],"license":"MIT","name":"jev-crawlers","repository":{"type":"git","url":"https://github.com/russfranky/jev-crawlers.git"},"scripts":{"test":"node --test test/"},"type":"module","version":"0.1.0"}
+{
+  "bin": {
+    "crawl": "bin/crawl",
+    "jev-seed": "bin/jev-seed.mjs",
+    "jev-judge": "bin/jev-judge.mjs",
+    "jev-verify": "bin/jev-verify.mjs",
+    "jev-expand": "bin/jev-expand.mjs",
+    "jev-report": "bin/jev-report.mjs"
+  },
+  "dependencies": {
+    "ai": "^7.0.105"
+  },
+  "description": "Recursive bug-discovery crawlers powered by Jev (typesafe-ai/jev): seed, expand, judge, verify, report.",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "jev",
+    "ai-gateway",
+    "bug-detection",
+    "code-review",
+    "crawler",
+    "unix"
+  ],
+  "license": "MIT",
+  "name": "jev-crawlers",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/russfranky/jev-crawlers.git"
+  },
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "type": "module",
+  "version": "0.1.0"
+}

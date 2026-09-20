@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-// crawl-seed — emit starting leads as JSON.
+// jev-seed — emit starting leads as JSON lines.
 // Sources: --diff (git diff vs --base), --todo (TODO/FIXME/XXX/HACK),
 // --patterns (risky code patterns: auth, money, eval, dynamic require).
-// Output: JSON array of nodes. Pipes into crawl-expand or crawl.
+// Output: one seed node per line (NDJSON). Pipes into jev-expand or the
+// crawl driver.
 import path from 'node:path';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { asArray, writeJson, readFileSafe, fail } from '../lib/io.mjs';
+import { asArray, writeJsonl, readFileSafe, fail } from '../lib/io.mjs';
 import { withId } from '../lib/graph.mjs';
 import { loadIgnores, grepSymbol, grepRegex, enclosingScope, gitDiffFiles } from '../lib/search.mjs';
 
@@ -19,7 +20,7 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--diff' || a === '--todo' || a === '--patterns') seeds.push(a.slice(2));
   else if (a === '--only' && args[i + 1]) only = args[++i].split(',');
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-seed --repo PATH [--diff] [--todo] [--patterns] [--base HEAD] [--only a.js,b.js]');
+    console.log('usage: jev-seed --repo PATH [--diff] [--todo] [--patterns] [--base HEAD] [--only a.js,b.js]');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
@@ -157,7 +158,7 @@ function isFpRepeat(node) {
     codeTexts.some(t => t === v.evidence || t.includes(v.evidence)));
 }
 
-writeJson(nodes.filter(n => {
+writeJsonl(nodes.filter(n => {
   const v = isFpRepeat(n);
   if (v) console.error(`fp-verdict: suppressed ${n.file} [${n.seed.type}] (verdict ${v.date})`);
   return !v;

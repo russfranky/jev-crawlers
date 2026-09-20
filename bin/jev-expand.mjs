@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// crawl-expand — follow context cues from one node to child leads.
+// jev-expand — follow context cues from one node to child leads.
 // Expansion is mechanical only (no model calls):
 //   symbol-refs : other files that mention the node's symbol
 //   co-change   : files that historically change with the node's file
 //   config-ref  : config files that reference the symbol
-// Reads one node (or array of nodes) from stdin, writes a JSON array of
-// child nodes. Pipes into crawl-judge.
-import { readStdinJson, asArray, writeJson, fail, readFileSafe } from '../lib/io.mjs';
+// Reads one node (or array of nodes) from stdin, writes one child node per
+// line (NDJSON). Pipes into jev-judge.
+import { readStdinJson, asArray, writeJsonl, fail, readFileSafe } from '../lib/io.mjs';
 import { withId } from '../lib/graph.mjs';
 import { loadIgnores, grepSymbol, coChangedFiles, configReferences, fileExcerpt, enclosingScope } from '../lib/search.mjs';
 import path from 'node:path';
@@ -19,13 +19,13 @@ for (let i = 0; i < args.length; i++) {
   else if (a === '--kinds' && args[i + 1]) kinds = args[++i].split(',');
   else if (a === '--max-children' && args[i + 1]) maxChildren = parseInt(args[++i], 10);
   else if (a === '--help' || a === '-h') {
-    console.log('usage: crawl-expand --repo PATH [--kinds symbol-refs,co-change,config-ref] [--max-children N] < node.json');
+    console.log('usage: jev-expand --repo PATH [--kinds symbol-refs,co-change,config-ref] [--max-children N] < node.json');
     process.exit(0);
   } else fail(`unknown arg ${a}`, 64);
 }
 
 const input = await readStdinJson();
-if (!input) fail('no node on stdin', 64);
+if (!input) process.exit(0); // empty pipe in: empty pipe out
 const isIgnored = loadIgnores(repo);
 const children = [];
 const seen = new Set(); // batch-level dedupe on canonical identity
@@ -84,4 +84,4 @@ for (const node of asArray(input)) {
   }
 }
 
-writeJson(children.slice(0, maxChildren * asArray(input).length));
+writeJsonl(children.slice(0, maxChildren * asArray(input).length));
