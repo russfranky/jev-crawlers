@@ -175,6 +175,58 @@ human-reviewable, same format as the jev-decide runner. See
 what is still unvalidated. Tune the thresholds only after you measure
 precision and recall on your own seeded bugs.
 
+## For agents
+
+Repo map:
+
+- `bin/jev-seed.mjs`, `bin/jev-expand.mjs`, `bin/jev-judge.mjs`,
+  `bin/jev-verify.mjs`, `bin/jev-report.mjs`: the five stage tools. Thin
+  arg-parsing; the real logic lives in `lib/`.
+- `bin/crawl`: the orchestrator. Owns budgets, frontier, depth, stop
+  rules, run summaries.
+- `lib/search.mjs`: seeder mechanics (grep, diff, TODO scan, FP verdict
+  matching). `lib/jev.mjs`: Jev client and context packing.
+  `lib/evidence.mjs`: verifier grounding. `lib/graph.mjs`: node
+  identity. `lib/io.mjs`: NDJSON plumbing.
+- `questions/crawl-judge.json`: the Jev question set. Human-reviewable;
+  every threshold is proposed, not calibrated.
+- `data/fp-verdicts.json`: human false-positive verdicts. Entries
+  suppress exact repeats; see below.
+- `examples/verifier-eval/`: the 12-node labeled fixture
+  (`run-verifier-eval.mjs`, dated results). Re-run it after touching
+  seed, judge, or verify semantics.
+- `docs/ASSUMPTIONS.md`: every design claim classified as measured,
+  research-backed, or unvalidated. Read before changing a threshold.
+- `docs/EVAL.md`: what was measured and when. The latest section is
+  the current truth; older sections are history.
+- `docs/crawlers-spec.pdf`: the full 37-page product spec.
+
+Workflows:
+
+```sh
+# Re-check seed/judge/verify semantics (costs a few cents of Jev)
+node examples/verifier-eval/run-verifier-eval.mjs
+
+# Run a crawl
+./bin/crawl --repo /path/to/repo --seed diff --budget 40 --out report.md
+```
+
+Record a false positive: append
+`{file, line, pattern, evidence, verdict: "false-positive", reason, date}`
+to `data/fp-verdicts.json`. `file` is repo-root-relative; the seeder
+matches on trailing segments, so verdicts also apply to runs scoped to
+a subdirectory. Suppression needs an exact repeat of file, pattern, and
+evidence text; it never weakens patterns.
+
+Add a seed pattern: extend the pattern table in `bin/jev-seed.mjs`.
+Keep the noise guards: bare words like `token` or `system` are banned
+as patterns because they match prose.
+
+Rules: the repo never holds a key (`AI_GATEWAY_API_KEY` comes from the
+environment). Do not invent thresholds; measure first, then write the
+result into `docs/EVAL.md` and classify the claim in
+`docs/ASSUMPTIONS.md`.
+
 ## Docs
 
 - `docs/crawlers-spec.pdf`: the full 37-page product specification.
