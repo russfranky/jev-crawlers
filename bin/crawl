@@ -53,15 +53,10 @@ for (let i = 0; i < args.length; i++) {
   } else fail(`unknown arg ${a}`, 64);
 }
 if (!seedKinds.length) seedKinds = ['diff', 'todo', 'patterns'];
-repo = path.resolve(repo); // children run with cwd=repo; keep the path absolute
+repo = path.resolve(repo);
 
 const t0 = Date.now();
-// Per-stage wall timings (ms), driver-measured. Recorded only when
-// --telemetry is passed; never affects the crawl itself.
 const timingsMs = { seed: 0, judge: 0, expand: 0, verify: 0, report: 0 };
-// A real pipe: spawn the stage, write records as JSON lines on its stdin,
-// read JSON lines back from its stdout. Stages are dumb filters (one tool,
-// one job); all orchestration — frontier, budget, termination — lives here.
 const pipe = (bin, binArgs, recordsIn) => {
   const rows = recordsIn == null ? [] : Array.isArray(recordsIn) ? recordsIn : [recordsIn];
   const res = execFileSync('node', [path.join(HERE, bin), ...binArgs], {
@@ -72,7 +67,6 @@ const pipe = (bin, binArgs, recordsIn) => {
   return res.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l));
 };
 
-// 1. Seed.
 const tSeed = Date.now();
 const seedArgs = ['--repo', repo, '--base', base, ...(only ? ['--only', only] : [])];
 for (const s of seedKinds) seedArgs.push('--' + s);
@@ -83,18 +77,21 @@ try {
 timingsMs.seed = Date.now() - tSeed;
 for (const s of seeds) {
   withId(s);
-  const { excerpt, symbolLine } = fileExcerpt(repo, s.file, 1, 30);
-  s.excerpt = excerpt; s.symbolLine = symbolLine;
+  const around = Number((s.evidence || []).find((e) => e && Number(e.line) > 0)?.line)
+    || Number(s.symbolLine)
+    || 1;
+  const { excerpt, symbolLine, excerptStartLine } = fileExcerpt(repo, s.file, around, 30);
+  s.excerpt = excerpt; s.symbolLine = symbolLine; s.excerptStartLine = excerptStartLine;
 }
 
 const frontier = new Frontier();
 const visited = new Set();
 for (const s of seeds) frontier.push(s);
 
-const candidates = [];      // file-report | needs-artifact | escalate-owner | review-queue, for jev-verify
+const candidates = [];
 let judged = 0, pruned = 0, expanded = 0, depthCapped = 0;
 let estCostUsd = 0, totalLatencyMs = 0;
-const recent = [];          // last judgments, for the diminishing-returns gate
+const recent = [];
 let termination = 'frontier-empty';
 
 const stubJudgment = (node) => ({
@@ -131,8 +128,6 @@ while (frontier.size > 0) {
   }
   judged++;
   totalLatencyMs += judgment.latencyMs || 0;
-  // Prefer the gateway-reported list cost when present (M13); the M2
-  // estimate is the fallback.
   if (!dryRun) estCostUsd += (typeof judgment.marketCostUsd === 'number' && judgment.marketCostUsd >= 0)
     ? judgment.marketCostUsd : 0.00008;
 
@@ -162,17 +157,10 @@ while (frontier.size > 0) {
   } else if (routing === 'auto-prune') {
     pruned++;
   } else {
-    // Before verification, attach the node's own cited code locations into
-    // the judgment record (lib/evidence.mjs), so jev-verify grounds the
-    // claim against judge artifact + node evidence + disk.
     judgment.attachedEvidence = attachEvidence(node);
-    candidates.push({ node, judgment }); // file-report | needs-artifact | escalate-owner
+    candidates.push({ node, judgment });
   }
 
-  // Diminishing-returns gate: 8 straight low-risk outcomes (pruned or sent
-  // to the review queue, all in the low risk band). The crawl is no longer
-  // finding anything worth a human's time. Uses the risk score band, never
-  // a raw boolean.
   if (recent.length === 8 && recent.every((r) => (r.routing === 'auto-prune' || r.routing === 'review-queue') && r.risk < 1)) {
     termination = 'diminishing-returns';
     break;
@@ -189,7 +177,6 @@ const stats = {
   wallMs: Date.now() - t0, termination, dryRun,
 };
 
-// 2. Verify, then 3. report.
 let verified = [];
 if (candidates.length) {
   try {
@@ -213,10 +200,6 @@ try {
 
 timingsMs.total = Date.now() - t0;
 
-// Opt-in telemetry (spec section 19: off by default for local runs;
-// counts and timings only, never source or paths). One NDJSON record
-// per run, appended to the crawler's own data dir — never the crawled
-// repo, never committed (see .gitignore).
 if (telemetry) {
   const record = {
     ts: new Date().toISOString(),

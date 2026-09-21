@@ -40,7 +40,8 @@ for (const node of asArray(input)) {
     const id = `${file}::${scope || '<file>'}::${symbol || '?'}`;
     if (seen.has(id)) return;
     seen.add(id);
-    const { excerpt, symbolLine } = fileExcerpt(repo, file, 1, 30);
+    const around = Number(line) > 0 ? Number(line) : 1;
+    const { excerpt, symbolLine, excerptStartLine } = fileExcerpt(repo, file, around, 30);
     // Structured evidence: the relation as context, plus the concrete code
     // line when the expansion knows it (symbol-refs hits carry file:line).
     const items = [{ kind: 'context', file, line: line || 0, text: `${relation}: ${evidence}`.slice(0, 300) }];
@@ -49,7 +50,7 @@ for (const node of asArray(input)) {
       file, symbol: symbol || '?', scope: scope || '<file>',
       kind: 'expanded', depth, priority,
       parent: node.id, relation,
-      excerpt, symbolLine,
+      excerpt, symbolLine, excerptStartLine,
       seed: node.seed,
       evidence: items,
     }));
@@ -59,9 +60,6 @@ for (const node of asArray(input)) {
   if (kinds.includes('symbol-refs') && node.symbol && node.symbol !== '?') {
     for (const hit of grepSymbol(repo, node.symbol, isIgnored)) {
       if (hit.file === node.file) continue;
-      // hit.scope is always set: grepRegex fills it via enclosingScope on
-      // every hit, and enclosingScope returns a name or '<file>' (never
-      // falsy), so no fallback is needed here.
       emit(hit.file, node.symbol, hit.scope,
         'symbol-refs', `${node.symbol} referenced at ${hit.file}:${hit.line}`, 0.8, hit.text, hit.line);
     }
