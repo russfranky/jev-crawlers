@@ -27,7 +27,7 @@
 //          verifier recall   = accepted bugs / 6 true bugs.
 // Plus a reason breakdown: risk-floor demotions vs grounding-gap demotions.
 //
-// Usage: node examples/verifier-eval/run-verifier-eval.mjs
+// Usage: node examples/verifier-eval/run-verifier-eval.mjs (takes no flags)
 // Writes results JSON next to this script; prints the metrics.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -38,6 +38,18 @@ import { attachEvidence } from '../../lib/evidence.mjs';
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(DIR, '..', '..');
 const FIXTURE = path.join(ROOT, 'examples', 'labeled-eval');
+
+// This eval takes no flags. Any arg is a mistype: reject it before any
+// work runs — a mistyped flag must never silently run a full live eval
+// (spends real Jev money). Same exit-64 convention as the bins.
+for (const a of process.argv.slice(2)) {
+  if (a === '--help' || a === '-h') {
+    console.log('usage: run-verifier-eval.mjs (takes no flags; runs the full 12-node live eval)');
+    process.exit(0);
+  }
+  console.error(`error: unknown arg ${a}`);
+  process.exit(64);
+}
 
 const LABELS = {
   'bugs.js::totalBroken': { label: 'bug', bugType: 'off-by-one' },

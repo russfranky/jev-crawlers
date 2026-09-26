@@ -30,7 +30,7 @@
     "url": "https://github.com/russfranky/jev-crawlers.git"
   },
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test 'test/*.test.mjs'"
   },
   "type": "module",
   "version": "0.1.0"

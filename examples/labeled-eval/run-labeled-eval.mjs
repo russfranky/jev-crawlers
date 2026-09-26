@@ -10,7 +10,21 @@ import { fileURLToPath } from 'node:url';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(DIR, '..', '..');
-const dryRun = process.argv.includes('--dry-run');
+
+// Known flags: --dry-run only. Anything else is a mistype: reject it
+// before any work runs (same exit-64 convention as the bins), so a
+// mistyped flag never silently runs a full live eval.
+let dryRun = false;
+for (const a of process.argv.slice(2)) {
+  if (a === '--dry-run') dryRun = true;
+  else if (a === '--help' || a === '-h') {
+    console.log('usage: run-labeled-eval.mjs [--dry-run]');
+    process.exit(0);
+  } else {
+    console.error(`error: unknown arg ${a}`);
+    process.exit(64);
+  }
+}
 
 // Ground truth, labeled by construction. Never placed in the node state.
 const LABELS = {
