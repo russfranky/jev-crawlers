@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { enclosingScope, loadIgnores, grepRegex, fileExcerpt, evidenceLine } from '../lib/search.mjs';
+import { execFileSync } from 'node:child_process';
+import { enclosingScope, loadIgnores, grepRegex, fileExcerpt, evidenceLine, coChangedFiles, configReferences } from '../lib/search.mjs';
 
 function tmpRepo(files) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jev-search-'));
@@ -59,4 +60,71 @@ test('evidenceLine prefers symbolLine then a cited evidence line', () => {
   assert.equal(evidenceLine({ symbolLine: 12, evidence: [{ line: 99 }] }), 12);
   assert.equal(evidenceLine({ evidence: [{ line: '7' }] }), 7);
   assert.equal(evidenceLine({}), 1);
+});
+
+function tmpGitRepo() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jev-search-git-'));
+  const git = (...args) => execFileSync('git', args, { cwd: dir, stdio: ['ignore', 'pipe', 'ignore'] });
+  git('init');
+  git('config', 'user.email', 'qa@example.com');
+  git('config', 'user.name', 'qa');
+  return { dir, git };
+}
+
+test('coChangedFiles finds files committed together (D-005)', () => {
+  const { dir, git } = tmpGitRepo();
+  const write = (rel, body) => fs.writeFileSync(path.join(dir, rel), body);
+  write('a.js', 'v1'); write('b.js', 'v1');
+  git('add', '-A'); git('commit', '-m', 'one');
+  write('a.js', 'v2'); write('b.js', 'v2');
+  git('add', '-A'); git('commit', '-m', 'two');
+  write('a.js', 'v3');
+  git('add', '-A'); git('commit', '-m', 'three');
+  const got = coChangedFiles(dir, 'a.js');
+  const b = got.find((r) => r.file === 'b.js');
+  assert.ok(b, `expected b.js in ${JSON.stringify(got)}`);
+  assert.equal(b.coChanges, 2);
+  assert.ok(!got.some((r) => r.file === 'a.js'), 'queried file must not list itself');
+});
+
+test('coChangedFiles returns [] when nothing co-changes and on git failure (D-005)', () => {
+  const { dir, git } = tmpGitRepo();
+  fs.writeFileSync(path.join(dir, 'solo.js'), 'x');
+  git('add', '-A'); git('commit', '-m', 'solo one');
+  fs.writeFileSync(path.join(dir, 'solo.js'), 'y');
+  git('add', '-A'); git('commit', '-m', 'solo two');
+  assert.deepEqual(coChangedFiles(dir, 'solo.js'), []);
+  assert.deepEqual(coChangedFiles(path.join(dir, 'no-such-dir'), 'solo.js'), []);
+});
+
+test('configReferences finds the product question set (D-006)', () => {
+  const repo = path.resolve(new URL('..', import.meta.url).pathname);
+  const got = configReferences(repo, 'zeroDataRetention', loadIgnores(repo));
+  assert.ok(got.some((r) => r.file === 'questions/crawl-judge.json'),
+    `expected questions/crawl-judge.json in ${JSON.stringify(got)}`);
+});
+
+test('loadIgnores anchors dist/build/vendor/node_modules/.git at root and nested (D-011)', () => {
+  const repo = tmpRepo({});
+  const ignore = loadIgnores(repo);
+  const ignored = [
+    'dist/a.js', 'sub/dist/a.js',
+    'build/b.js', 'sub/build/b.js',
+    'vendor/c.js', 'sub/vendor/c.js',
+    'node_modules/x.js', 'sub/node_modules/x.js',
+    '.git/config', 'sub/.git/config',
+  ];
+  for (const rel of ignored) assert.equal(ignore(rel), true, rel);
+  const kept = ['distant/a.js', 'mybuild/b.js', 'src/gitkeep.js', 'src/a.js', 'buildinfo.txt'];
+  for (const rel of kept) assert.equal(ignore(rel), false, rel);
+});
+
+test('crawl skips root and nested build output but keeps lookalikes (D-011)', () => {
+  const repo = tmpRepo({
+    'dist/a.js': 'TODO x\n', 'sub/dist/a.js': 'TODO x\n',
+    'build/b.js': 'TODO x\n', 'vendor/c.js': 'TODO x\n',
+    'src/ok.js': 'TODO x\n', 'distant/keep.js': 'TODO x\n',
+  });
+  const hits = grepRegex(repo, /\bTODO\b/, loadIgnores(repo));
+  assert.deepEqual(hits.map((h) => h.file).sort(), ['distant/keep.js', 'src/ok.js']);
 });
