@@ -29,6 +29,29 @@ test('well-known GitHub token prefix is redacted', () => {
   assert.ok(text.includes(REDACTED_MARKER));
 });
 
+test('sk-ant- Anthropic key prefix is redacted', () => {
+  const raw = 'sk-ant-abcdefghijklmnopqrstuvwxyz0123456789ABCD';
+  const { text, count } = redactText('found ' + raw + ' in logs');
+  assert.ok(count >= 1);
+  assert.ok(!text.includes(raw));
+  assert.ok(text.includes(REDACTED_MARKER));
+});
+
+test('bare sk- OpenAI key prefix is redacted', () => {
+  const raw = 'sk-abcdefghijklmnopqrstuvwxyz0123456789ABCD';
+  const { text, count } = redactText('found ' + raw + ' in logs');
+  assert.ok(count >= 1);
+  assert.ok(!text.includes(raw));
+  assert.ok(text.includes(REDACTED_MARKER));
+});
+
+test('short sk- fragment is not redacted', () => {
+  const src = 'the sk-abc fragment is too short to be a key';
+  const { text, count } = redactText(src);
+  assert.equal(count, 0);
+  assert.equal(text, src);
+});
+
 test('prose mention of secret is untouched', () => {
   const src = 'a comment mentioning secret without a value';
   const { count, text } = redactText(src);

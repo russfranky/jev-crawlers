@@ -32,7 +32,10 @@ for (let i = 0; i < args.length; i++) {
   if (a === '--repo' && args[i + 1]) repo = args[++i];
   else if (a === '--seed' && args[i + 1]) seedKinds.push(args[++i]);
   else if (a === '--base' && args[i + 1]) base = args[++i];
-  else if (a === '--budget' && args[i + 1]) budget = parseInt(args[++i], 10);
+  else if (a === '--budget' && args[i + 1]) {
+    budget = parseInt(args[++i], 10);
+    if (!Number.isInteger(budget) || budget < 0) fail(`--budget must be a non-negative integer (got "${args[i]}")`, 64);
+  }
   else if (a === '--depth' && args[i + 1]) maxDepth = parseInt(args[++i], 10);
   else if (a === '--decay' && args[i + 1]) decay = parseFloat(args[++i]);
   else if (a === '--max-children' && args[i + 1]) maxChildren = parseInt(args[++i], 10);
@@ -222,8 +225,14 @@ if (telemetry) {
     dryRun,
   };
   const telPath = path.join(HERE, '..', 'data', 'telemetry.jsonl');
-  fs.mkdirSync(path.dirname(telPath), { recursive: true });
-  fs.appendFileSync(telPath, JSON.stringify(record) + '\n');
+  try {
+    fs.mkdirSync(path.dirname(telPath), { recursive: true });
+    fs.appendFileSync(telPath, JSON.stringify(record) + '\n');
+  } catch (e) {
+    // Telemetry is opt-in observability: a failed append must never
+    // discard the report. Warn and continue with exit semantics unchanged.
+    process.stderr.write(`crawl: warning: telemetry append failed (${e.message}); continuing\n`);
+  }
 }
 
 if (!outFile) process.stdout.write(report);
