@@ -154,14 +154,20 @@ function citedLocations(node, items) {
 // when the evidence cites text, the on-disk line matches it.
 function checkOnDisk(repoDir, loc) {
   const text = readFileSafe(path.join(repoDir, loc.file));
-  if (!text) return { ok: false, reason: `file not found on disk: ${loc.file}` };
+  if (text == null) return { ok: false, reason: `file not found on disk: ${loc.file}` };
+  if (text.length === 0) {
+    return { ok: false, reason: `${loc.file}:${loc.line} out of range (empty file)` };
+  }
   const lines = text.split('\n');
   if (loc.line < 1 || loc.line > lines.length) {
     return { ok: false, reason: `${loc.file}:${loc.line} out of range (${lines.length} lines)` };
   }
   const actual = lines[loc.line - 1].trim();
   const cited = String(loc.text || '').trim().slice(0, 200);
-  if (cited && !actual.includes(cited) && !cited.includes(actual)) {
+  // Guard the empty-line edge: a file ending with '\n' splits into a
+  // phantom trailing '' line, and `cited.includes('')` is always true —
+  // so a fabricated cite on that line must not get a vacuous pass.
+  if (cited && !actual.includes(cited) && !(actual && cited.includes(actual))) {
     return { ok: false, reason: `${loc.file}:${loc.line} content mismatch` };
   }
   return { ok: true, actual };

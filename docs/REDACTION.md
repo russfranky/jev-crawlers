@@ -30,16 +30,20 @@ detection" plus known credential prefixes):
 3. **`Authorization: Bearer <token>`** — the canonical header shape,
    which has no assignment operator.
 4. **PEM / OpenSSH blocks**: `-----BEGIN … PRIVATE KEY-----` through
-   the matching `END` line. Each interior line is replaced with the
-   marker so line numbers stay aligned with the on-disk file.
+   the matching `END` line. The entire interior is collapsed to a
+   single marker line (`BEGIN…` / `[REDACTED:credential]` / `END…`),
+   so line numbers after a redacted PEM block shift up relative to
+   the on-disk file.
 5. **Known prefixes**: `sk-` / `sk-ant-` (OpenAI / Anthropic),
    `ghp_` / `github_pat_` (GitHub), `xox` (Slack), `AKIA` / `ASIA`
-   followed by 16 alphanumeric chars (AWS access key ids).
+   followed by at least 8 characters from `[A-Za-z0-9_-]` (AWS
+   access key ids — a superset of the strict AKIA+16 shape, so longer
+   or dash/underscore-bearing lookalikes are caught too).
 
 The redaction is lossy-safe: only the value is replaced. Keys,
 operators, quoting, and surrounding code stay intact, so the judge
-still sees the code shape around a redacted secret, and line numbers
-stay aligned with the on-disk file.
+still sees the code shape around a redacted secret, and (outside
+redacted PEM blocks) line numbers stay aligned with the on-disk file.
 
 Each redacted node carries `redactions: [{ "class": "credential",
 "count": N }]` (the spec's evidence-record format), surfaced on the
